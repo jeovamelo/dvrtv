@@ -1,0 +1,100 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0, user-scalable=no">
+    <title>DVR TV - Samsung Smart TV</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Cabeçalho Superior -->
+    <header class="app-header">
+        <div class="header-left">
+            <div class="app-logo">TV</div>
+            <h1 id="dvr-title" class="dvr-title">DVR01Casa • iDS-7216HQHI-M1/XT</h1>
+            <div class="connection-status">
+                <span id="status-dot" class="status-dot connecting"></span>
+                <span id="status-label">Conectando...</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="clock-widget">
+                <div id="clock-time" class="clock-time">--:--:--</div>
+                <div id="clock-date" class="clock-date">--</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Área Principal de Exibição (Grade de Câmeras) -->
+    <main class="main-container">
+        <div id="camera-grid" class="camera-grid layout-3x3">
+            <!-- Os cards de câmeras são gerados dinamicamente via app.js -->
+        </div>
+    </main>
+
+    <!-- Visualização em Tela Cheia (Player de Vídeo) -->
+    <div id="fullscreen-view" class="fullscreen-view">
+        <div id="fullscreen-player-container" class="fullscreen-player-container">
+            <!-- Player AVPlay RTSP ou Fallback -->
+            <div id="player-loader" class="player-loader">
+                <div class="spinner"></div>
+                <span>Carregando transmissão ao vivo...</span>
+            </div>
+        </div>
+        <div class="fs-overlay-header">
+            <h2 id="fs-cam-title" class="fs-cam-title">Camera 01</h2>
+            <div class="fs-badges">
+                <span class="fs-live-badge">AO VIVO</span>
+                <span id="fs-cam-badge" class="fs-quality-badge">STREAM HD 1080P</span>
+            </div>
+        </div>
+        <div class="fs-overlay-footer">
+            <span><span class="fs-hint-key">OK / VOLTAR</span> Retornar à Grade</span>
+            <span><span class="fs-hint-key">CH ▲ / ▼</span> Trocar Câmera</span>
+            <span><span class="fs-hint-key">AMARELO</span> Alternar HD / Fluido</span>
+        </div>
+    </div>
+
+    <!-- Rodapé com Legenda dos Botões do Controle Remoto Samsung -->
+    <footer class="remote-legend-footer">
+        <div class="legend-item">
+            <span class="key-badge">▲ ▼ ◄ ►</span>
+            <span>Navegar</span>
+        </div>
+        <div class="legend-item">
+            <span class="key-badge">OK</span>
+            <span>Tela Cheia</span>
+        </div>
+        <div class="legend-item">
+            <span class="btn-pill red"></span>
+            <span>Reconectar</span>
+        </div>
+        <div class="legend-item">
+            <span class="btn-pill green"></span>
+            <span>Mudar Grade</span>
+        </div>
+        <div class="legend-item">
+            <span class="btn-pill yellow"></span>
+            <span>HD / Fluido</span>
+        </div>
+        <div class="legend-item">
+            <span class="btn-pill blue"></span>
+            <span>Filtrar Ativas</span>
+        </div>
+        <div class="legend-item">
+            <span class="key-badge">0-9</span>
+            <span>Canal Direto</span>
+        </div>
+    </footer>
+
+    <!-- Toast de Notificação -->
+    <div id="toast-notification" class="toast-notification"></div>
+
+    <!-- Scripts da Aplicação -->
+    <script src="js/sha256.js"></script>
+    <script src="js/dvr-api.js"></script>
+    <script src="js/avplayer.js"></script>
+    <script src="js/remote-keys.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
