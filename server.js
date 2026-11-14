@@ -3,7 +3,8 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = 8080;
-const DVR_HOST = '192.168.100.2';
+const DEFAULT_DVR_HOST = '192.168.100.2';
+const DEFAULT_DVR_PORT = 80;
 
 const server = http.createServer((req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -16,17 +17,24 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // Proxy para o DVR Hikvision
+    // Proxy para o DVR Hikvision com suporte a múltiplos IPs e Portas
     if (req.url.startsWith('/dvr/')) {
         const dvrPath = req.url.substring(4);
+        
+        // Permite que o frontend altere o IP e Porta do DVR dinamicamente
+        const targetHost = req.headers['x-dvr-ip'] || DEFAULT_DVR_HOST;
+        const targetPort = parseInt(req.headers['x-dvr-port'] || DEFAULT_DVR_PORT, 10);
+
         const headers = { ...req.headers };
-        headers.host = DVR_HOST;
+        headers.host = (targetPort === 80) ? targetHost : (targetHost + ':' + targetPort);
         delete headers.origin;
         delete headers.referer;
+        delete headers['x-dvr-ip'];
+        delete headers['x-dvr-port'];
 
         const options = {
-            hostname: DVR_HOST,
-            port: 80,
+            hostname: targetHost,
+            port: targetPort,
             path: dvrPath,
             method: req.method,
             headers: headers
@@ -41,9 +49,9 @@ const server = http.createServer((req, res) => {
         });
 
         dvrReq.on('error', (err) => {
-            console.error('DVR Proxy Error:', err.message);
+            console.error(`[DVR Proxy Error] (${targetHost}:${targetPort}):`, err.message);
             res.writeHead(502, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' });
-            res.end('DVR Gateway Error: ' + err.message);
+            res.end(`DVR Gateway Error (${targetHost}:${targetPort}): ` + err.message);
         });
 
         req.pipe(dvrReq);

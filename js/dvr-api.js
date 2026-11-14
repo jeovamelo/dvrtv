@@ -1,6 +1,6 @@
-/**
+Ôªø/**
  * Hikvision ISAPI Client para Samsung Smart TV (Tizen 5.5+)
- * CompatÌvel com Chromium 69+ (sem optional chaining ou recursos ES2020).
+ * Compat√≠vel com Chromium 69+ (sem optional chaining ou recursos ES2020).
  */
 
 function getNodeText(parent, selector, defaultValue) {
@@ -12,11 +12,11 @@ function getNodeText(parent, selector, defaultValue) {
 class DvrApiClient {
     constructor(config) {
         config = config || {};
-        this.ip = config.ip || '192.168.100.2';
-        this.httpPort = config.httpPort || 80;
-        this.rtspPort = config.rtspPort || 554;
-        this.username = config.username || 'admin';
-        this.password = config.password || 'jr130182';
+        this.ip = (config.ip || '192.168.100.2').trim();
+        this.httpPort = parseInt(config.httpPort || '80', 10);
+        this.rtspPort = parseInt(config.rtspPort || '554', 10);
+        this.username = (config.username || 'admin').trim();
+        this.password = (typeof config.password !== 'undefined') ? config.password : 'jr130182';
 
         this.sessionTag = null;
         this.sessionID = null;
@@ -35,16 +35,62 @@ class DvrApiClient {
     }
 
     /**
-     * AutenticaÁ„o via ISAPI sessionLogin (SHA-256)
+     * Atualiza credenciais e endere√ßo dinamicamente
+     */
+    updateConfig(newConfig) {
+        if (this.heartbeatTimer) {
+            clearInterval(this.heartbeatTimer);
+            this.heartbeatTimer = null;
+        }
+        newConfig = newConfig || {};
+        if (newConfig.ip) this.ip = newConfig.ip.trim();
+        if (newConfig.httpPort) this.httpPort = parseInt(newConfig.httpPort, 10);
+        if (newConfig.rtspPort) this.rtspPort = parseInt(newConfig.rtspPort, 10);
+        if (newConfig.username) this.username = newConfig.username.trim();
+        if (typeof newConfig.password !== 'undefined') this.password = newConfig.password;
+
+        this.sessionTag = null;
+        this.sessionID = null;
+        this.isAuthenticated = false;
+        this.deviceInfo = null;
+        this.channels = [];
+    }
+
+    /**
+     * Headers padronizados com suporte a proxy PC din√¢mico
+     */
+    getRequestHeaders(customHeaders) {
+        var headers = { 'If-Modified-Since': '0' };
+        if (this.sessionTag) {
+            headers['SessionTag'] = this.sessionTag;
+        }
+        // Quando testando no PC, envia o IP e porta destino para o proxy do server.js
+        if (window.location && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+            headers['x-dvr-ip'] = this.ip;
+            headers['x-dvr-port'] = String(this.httpPort);
+        }
+        if (customHeaders) {
+            for (var k in customHeaders) {
+                if (customHeaders.hasOwnProperty(k)) {
+                    headers[k] = customHeaders[k];
+                }
+            }
+        }
+        return headers;
+    }
+
+    /**
+     * Autentica√ß√£o via ISAPI sessionLogin (SHA-256)
      */
     async login() {
         try {
-            console.log('[DVR] Conectando a ' + this.baseUrl);
+            console.log('[DVR] Conectando a ' + this.baseUrl + ' (' + this.ip + ':' + this.httpPort + ')');
             
             // Passo 1: Obter capacidades e desafio
             var capUrl = this.baseUrl + '/ISAPI/Security/sessionLogin/capabilities?username=' + encodeURIComponent(this.username) + '&_=' + Date.now();
             var capRes = await fetch(capUrl, {
                 method: 'GET',
+                headers: this.getRequestHeaders(),
                 credentials: 'include'
             });
 
@@ -63,7 +109,7 @@ class DvrApiClient {
             var salt = getNodeText(capDoc, 'salt', '');
 
             if (!challenge) {
-                throw new Error('Desafio de autenticaÁ„o n„o retornado pelo DVR');
+                throw new Error('Desafio de autentica√ß√£o n√£o retornado pelo DVR');
             }
 
             // Passo 2: Calcular Hash SHA-256 da senha
@@ -83,7 +129,7 @@ class DvrApiClient {
                 passwordHash = h2;
             }
 
-            // Passo 3: Enviar requisiÁ„o POST com XML de SessionLogin
+            // Passo 3: Enviar requisi√ß√£o POST com XML de SessionLogin
             var loginPayload = 
                 '<?xml version="1.0" encoding="UTF-8"?>' +
                 '<SessionLogin>' +
@@ -95,10 +141,9 @@ class DvrApiClient {
             var loginUrl = this.baseUrl + '/ISAPI/Security/sessionLogin?timeStamp=' + Date.now();
             var loginRes = await fetch(loginUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/xml',
-                    'If-Modified-Since': '0'
-                },
+                headers: this.getRequestHeaders({
+                    'Content-Type': 'application/xml'
+                }),
                 credentials: 'include',
                 body: loginPayload
             });
@@ -115,30 +160,27 @@ class DvrApiClient {
                 this.startHeartbeat();
                 return true;
             } else {
-                var statusStr = getNodeText(loginDoc, 'statusString', 'Erro de autenticaÁ„o');
-                throw new Error(statusStr + ' (' + statusVal + ')');
+                var statusStr = getNodeText(loginDoc, 'statusString', 'Erro de autentica√ß√£o');
+                throw new Error(statusStr || 'Senha ou usu√°rio incorretos no DVR');
             }
-        } catch (err) {
-            console.error('[DVR] Erro no login:', err);
+        } catch (e) {
+            console.error('[DVR] Erro no login:', e);
             this.isAuthenticated = false;
-            throw err;
+            throw e;
         }
     }
-
     /**
-     * MantÈm a sess„o do DVR ativa via Heartbeat a cada 30 segundos
+     * Mant√©m a sess√£o ativa enviando heartbeat a cada 30 segundos
      */
     startHeartbeat() {
-        if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
         var self = this;
+        if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
         this.heartbeatTimer = setInterval(async function() {
             if (!self.isAuthenticated) return;
             try {
-                var headers = { 'If-Modified-Since': '0' };
-                if (self.sessionTag) headers['SessionTag'] = self.sessionTag;
                 await fetch(self.baseUrl + '/ISAPI/Security/sessionHeartbeat', {
                     method: 'PUT',
-                    headers: headers,
+                    headers: self.getRequestHeaders(),
                     credentials: 'include'
                 });
             } catch (e) {
@@ -148,15 +190,12 @@ class DvrApiClient {
     }
 
     /**
-     * Consulta informaÁıes de hardware do DVR
+     * Consulta informa√ß√µes de hardware do DVR
      */
     async getDeviceInfo() {
         try {
-            var headers = { 'If-Modified-Since': '0' };
-            if (this.sessionTag) headers['SessionTag'] = this.sessionTag;
-
             var res = await fetch(this.baseUrl + '/ISAPI/System/deviceInfo', {
-                headers: headers,
+                headers: this.getRequestHeaders(),
                 credentials: 'include'
             });
 
@@ -179,15 +218,12 @@ class DvrApiClient {
     }
 
     /**
-     * Lista todos os canais de vÌdeo disponÌveis e o status de sinal
+     * Lista todos os canais de v√≠deo dispon√≠veis e o status de sinal
      */
     async getChannels() {
         try {
-            var headers = { 'If-Modified-Since': '0' };
-            if (this.sessionTag) headers['SessionTag'] = this.sessionTag;
-
             var res = await fetch(this.baseUrl + '/ISAPI/System/Video/inputs/channels', {
-                headers: headers,
+                headers: this.getRequestHeaders(),
                 credentials: 'include'
             });
 
@@ -235,16 +271,14 @@ class DvrApiClient {
     }
 
     /**
-     * Busca o snapshot como Blob com os headers de autenticaÁ„o
+     * Busca o snapshot como Blob com os headers de autentica√ß√£o
      */
     async fetchSnapshotBlob(channelId, streamType) {
         streamType = streamType || 2;
         var url = this.getSnapshotUrl(channelId, streamType);
-        var headers = { 'If-Modified-Since': '0' };
-        if (this.sessionTag) headers['SessionTag'] = this.sessionTag;
 
         var res = await fetch(url, {
-            headers: headers,
+            headers: this.getRequestHeaders(),
             credentials: 'include'
         });
 
@@ -254,7 +288,7 @@ class DvrApiClient {
     }
 
     /**
-     * Gera URL RTSP para reproduÁ„o via Samsung AVPlay
+     * Gera URL RTSP para reprodu√ß√£o via Samsung AVPlay
      */
     getRtspUrl(channelId, streamType) {
         streamType = streamType || 1;

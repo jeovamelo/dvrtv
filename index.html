@@ -18,6 +18,10 @@
             </div>
         </div>
         <div class="header-right">
+            <button id="btn-settings" class="btn-settings" title="Configurações (Tecla Azul)" tabindex="0">
+                <span class="icon-gear">⚙️</span>
+                <span>Configurações</span>
+            </button>
             <div class="clock-widget">
                 <div id="clock-time" class="clock-time">--:--:--</div>
                 <div id="clock-date" class="clock-date">--</div>
@@ -27,7 +31,7 @@
 
     <!-- Área Principal de Exibição (Grade de Câmeras) -->
     <main class="main-container">
-        <div id="camera-grid" class="camera-grid layout-3x3">
+        <div id="camera-grid" class="camera-grid layout-4x4">
             <!-- Os cards de câmeras são gerados dinamicamente via app.js -->
         </div>
     </main>
@@ -55,6 +59,78 @@
         </div>
     </div>
 
+    <!-- Modal de Configurações do DVR (Básico e Avançado) -->
+    <div id="settings-modal" class="settings-modal" style="display: none;">
+        <div class="settings-backdrop" id="settings-backdrop"></div>
+        <div class="settings-card">
+            <div class="settings-header">
+                <div class="settings-title-wrap">
+                    <span class="settings-icon">⚙️</span>
+                    <h2>Configurações do DVR</h2>
+                </div>
+                <button type="button" id="btn-close-modal" class="btn-close-modal" title="Fechar (Voltar)" tabindex="0">✕</button>
+            </div>
+
+            <div class="settings-body">
+                <!-- Configurações Básicas -->
+                <div class="form-group">
+                    <label for="cfg-ip">Endereço IP do DVR</label>
+                    <input type="text" id="cfg-ip" class="form-input" placeholder="192.168.100.2" autocomplete="off" spellcheck="false" tabindex="0">
+                    <span class="input-hint">Endereço IP local do gravador na sua rede (Ex: 192.168.100.2)</span>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group flex-1">
+                        <label for="cfg-user">Usuário</label>
+                        <input type="text" id="cfg-user" class="form-input" placeholder="admin" autocomplete="off" spellcheck="false" tabindex="0">
+                    </div>
+                    <div class="form-group flex-1">
+                        <label for="cfg-pwd">Senha</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="cfg-pwd" class="form-input" placeholder="Senha do DVR" autocomplete="off" tabindex="0">
+                            <button type="button" id="btn-toggle-pwd" class="btn-toggle-pwd" title="Exibir / Ocultar Senha" tabindex="0">👁️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configurações Avançadas (Portas) -->
+                <div class="advanced-section">
+                    <button type="button" id="btn-toggle-advanced" class="btn-toggle-advanced" tabindex="0">
+                        <span id="advanced-arrow" class="advanced-arrow">▶</span>
+                        <span>Configurações Avançadas (Portas)</span>
+                    </button>
+
+                    <div id="advanced-fields" class="advanced-fields" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group flex-1">
+                                <label for="cfg-http-port">Porta HTTP / Web</label>
+                                <input type="number" id="cfg-http-port" class="form-input" placeholder="80" min="1" max="65535" tabindex="0">
+                                <span class="input-hint">Padrão: 80 (utilizada para API ISAPI e fotos)</span>
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="cfg-rtsp-port">Porta RTSP (Vídeo)</label>
+                                <input type="number" id="cfg-rtsp-port" class="form-input" placeholder="554" min="1" max="65535" tabindex="0">
+                                <span class="input-hint">Padrão: 554 (transmissão de vídeo ao vivo)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-footer">
+                <button type="button" id="btn-save-settings" class="modal-btn btn-primary" tabindex="0">
+                    <span>💾 Salvar e Reconectar</span>
+                </button>
+                <button type="button" id="btn-default-settings" class="modal-btn btn-secondary" tabindex="0">
+                    <span>🔄 Restaurar Padrões</span>
+                </button>
+                <button type="button" id="btn-cancel-settings" class="modal-btn btn-cancel" tabindex="0">
+                    <span>✕ Cancelar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Rodapé com Legenda dos Botões do Controle Remoto Samsung -->
     <footer class="remote-legend-footer">
         <div class="legend-item">
@@ -63,7 +139,7 @@
         </div>
         <div class="legend-item">
             <span class="key-badge">OK</span>
-            <span>Tela Cheia</span>
+            <span>Tela Cheia / Selecionar</span>
         </div>
         <div class="legend-item">
             <span class="btn-pill red"></span>
@@ -79,7 +155,7 @@
         </div>
         <div class="legend-item">
             <span class="btn-pill blue"></span>
-            <span>Filtrar Ativas</span>
+            <span>⚙️ Configurações</span>
         </div>
         <div class="legend-item">
             <span class="key-badge">0-9</span>
