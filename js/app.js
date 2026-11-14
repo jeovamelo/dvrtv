@@ -21,6 +21,7 @@ class DvrTvApp {
         this.isFullScreen = false;
         this.fullScreenChannel = null;
         this.streamQuality = 1; // 1 = HD (1080P), 2 = Fluido
+        this.currentFocusZone = 'grid'; // 'grid' ou 'header'
 
         // Estado do Modal de Configurações
         this.isModalOpen = false;
@@ -74,6 +75,7 @@ class DvrTvApp {
         var btnSettings = document.getElementById('btn-settings');
         if (btnSettings) {
             btnSettings.addEventListener('click', function() {
+                self.currentFocusZone = 'header';
                 self.openSettingsModal();
             });
         }
@@ -239,6 +241,7 @@ class DvrTvApp {
                 '</div>';
 
             card.addEventListener('click', function() {
+                self.currentFocusZone = 'grid';
                 self.focusedIndex = index;
                 self.updateCardFocus();
                 self.openFullScreen(channel);
@@ -249,13 +252,31 @@ class DvrTvApp {
     }
 
     updateCardFocus() {
+        var btnSettings = document.getElementById('btn-settings');
         var cards = document.querySelectorAll('.camera-card');
-        for (var i = 0; i < cards.length; i++) {
-            if (i === this.focusedIndex) {
-                cards[i].classList.add('focused');
-                cards[i].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            } else {
+
+        if (this.currentFocusZone === 'header') {
+            if (btnSettings) {
+                btnSettings.classList.add('focused');
+                try { btnSettings.focus(); } catch (e) {}
+            }
+            for (var i = 0; i < cards.length; i++) {
                 cards[i].classList.remove('focused');
+            }
+            return;
+        }
+
+        if (btnSettings) {
+            btnSettings.classList.remove('focused');
+            try { btnSettings.blur(); } catch (e) {}
+        }
+
+        for (var j = 0; j < cards.length; j++) {
+            if (j === this.focusedIndex) {
+                cards[j].classList.add('focused');
+                cards[j].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else {
+                cards[j].classList.remove('focused');
             }
         }
     }
@@ -500,6 +521,15 @@ class DvrTvApp {
             return;
         }
 
+        // Se o foco já estiver no botão Configurações no topo:
+        if (this.currentFocusZone === 'header') {
+            if (direction === 'down') {
+                this.currentFocusZone = 'grid';
+                this.updateCardFocus();
+            }
+            return;
+        }
+
         var visibleChannels = this.getVisibleChannels();
         if (visibleChannels.length === 0) return;
 
@@ -515,6 +545,9 @@ class DvrTvApp {
             case 'up':
                 if (this.focusedIndex - cols >= 0) {
                     this.focusedIndex -= cols;
+                } else {
+                    // Ao subir além da primeira fileira, seleciona o botão Configurações no cabeçalho
+                    this.currentFocusZone = 'header';
                 }
                 break;
             case 'down':
@@ -547,6 +580,12 @@ class DvrTvApp {
                     el.focus();
                 }
             }
+            return;
+        }
+
+        // Se o foco estiver no botão de Configurações no topo:
+        if (this.currentFocusZone === 'header') {
+            this.openSettingsModal();
             return;
         }
 

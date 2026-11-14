@@ -125,9 +125,9 @@ html, body {
 .btn-settings:hover, .btn-settings.focused {
     background: #0284c7;
     color: #ffffff;
-    border-color: #38bdf8;
-    box-shadow: 0 0 14px rgba(56, 189, 248, 0.65);
-    transform: scale(1.03);
+    border-color: #00d2ff;
+    box-shadow: 0 0 16px rgba(0, 210, 255, 0.85), inset 0 0 6px rgba(0, 210, 255, 0.4);
+    transform: scale(1.05);
 }
 
 .icon-gear {
