@@ -1,7 +1,7 @@
-﻿/**
+/**
  * Aplicação Principal DVR TV para Samsung Smart TV e PC
  * Padrão: Grade 4x4 com 16 câmeras simultâneas na tela
- * Suporte a Modal de Configurações (IP, Usuário, Senha, Portas HTTP e RTSP)
+ * Suporte a Modal de Configurações Seguro (Senha protegida e salva internamente)
  */
 class DvrTvApp {
     constructor() {
@@ -25,7 +25,7 @@ class DvrTvApp {
         // Estado do Modal de Configurações
         this.isModalOpen = false;
         this.isAdvancedOpen = false;
-        this.isPwdVisible = false;
+        this._restoreDefaultPwdRequested = false;
         this.modalFocusIndex = 0;
         this.modalFocusableElements = [];
 
@@ -100,13 +100,6 @@ class DvrTvApp {
             });
         }
 
-        var btnTogglePwd = document.getElementById('btn-toggle-pwd');
-        if (btnTogglePwd) {
-            btnTogglePwd.addEventListener('click', function() {
-                self.togglePasswordVisibility();
-            });
-        }
-
         var btnToggleAdv = document.getElementById('btn-toggle-advanced');
         if (btnToggleAdv) {
             btnToggleAdv.addEventListener('click', function() {
@@ -147,6 +140,7 @@ class DvrTvApp {
             onNumber: function(num) { self.handleNumber(num); }
         });
     }
+
     async connectDvr() {
         var ip = this.dvr.ip;
         this.showToast('Conectando ao DVR (' + ip + ')...', 3000);
@@ -178,7 +172,7 @@ class DvrTvApp {
                 grid.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#ef4444;font-size:22px;gap:14px;text-align:center;padding:40px;">' +
                     '<div>⚠️ Não foi possível carregar os canais do DVR (' + this.dvr.baseUrl + ')</div>' +
                     '<div style="color:#94a3b8;font-size:16px;">Detalhes: ' + err.message + '</div>' +
-                    '<div style="color:#38bdf8;font-size:16px;margin-top:10px;">Pressione a <b style="color:#60a5fa">Tecla Azul</b> ou clique em <b>⚙️ Configurações</b> para ajustar o IP ou Senha.</div>' +
+                    '<div style="color:#38bdf8;font-size:16px;margin-top:10px;">Pressione a <b style="color:#60a5fa">Tecla Azul</b> ou clique em <b>⚙️ Configurações</b> para ajustar os dados.</div>' +
                     '</div>';
             }
         }
@@ -288,17 +282,18 @@ class DvrTvApp {
             });
         }, 3500);
     }
+
     /* ==========================================================================
-       GESTÃO DO MODAL DE CONFIGURAÇÕES
+       GESTÃO DO MODAL DE CONFIGURAÇÕES (SEGURA: SENHA SALVA INTERNAMENTE)
        ========================================================================== */
     openSettingsModal() {
-        console.log('[App] Abrindo modal de configurações...');
+        console.log('[App] Abrindo modal de configurações seguro...');
         this.isModalOpen = true;
+        this._restoreDefaultPwdRequested = false;
 
         var modal = document.getElementById('settings-modal');
         if (!modal) return;
 
-        // Preenche com os dados salvos atuais
         var ipInput = document.getElementById('cfg-ip');
         var userInput = document.getElementById('cfg-user');
         var pwdInput = document.getElementById('cfg-pwd');
@@ -307,16 +302,16 @@ class DvrTvApp {
 
         if (ipInput) ipInput.value = localStorage.getItem('dvr_ip') || this.dvr.ip || '192.168.100.2';
         if (userInput) userInput.value = localStorage.getItem('dvr_user') || this.dvr.username || 'admin';
+        
+        // Segurança: NUNCA exibe a senha salva. Campo permanece vazio com máscara de proteção.
         if (pwdInput) {
-            pwdInput.value = localStorage.getItem('dvr_pwd') || this.dvr.password || 'jr130182';
+            pwdInput.value = '';
             pwdInput.type = 'password';
+            pwdInput.placeholder = '•••••••• (Salva internamente)';
         }
+
         if (httpPortInput) httpPortInput.value = localStorage.getItem('dvr_http_port') || this.dvr.httpPort || 80;
         if (rtspPortInput) rtspPortInput.value = localStorage.getItem('dvr_rtsp_port') || this.dvr.rtspPort || 554;
-
-        this.isPwdVisible = false;
-        var btnTogglePwd = document.getElementById('btn-toggle-pwd');
-        if (btnTogglePwd) btnTogglePwd.textContent = '👁️';
 
         // Fecha a área avançada inicialmente
         this.isAdvancedOpen = false;
@@ -346,18 +341,6 @@ class DvrTvApp {
         this.updateCardFocus();
     }
 
-    togglePasswordVisibility() {
-        var pwdInput = document.getElementById('cfg-pwd');
-        var btnToggle = document.getElementById('btn-toggle-pwd');
-        if (!pwdInput) return;
-
-        this.isPwdVisible = !this.isPwdVisible;
-        pwdInput.type = this.isPwdVisible ? 'text' : 'password';
-        if (btnToggle) {
-            btnToggle.textContent = this.isPwdVisible ? '🔒' : '👁️';
-        }
-    }
-
     toggleAdvancedSection() {
         var advFields = document.getElementById('advanced-fields');
         var advArrow = document.getElementById('advanced-arrow');
@@ -377,7 +360,6 @@ class DvrTvApp {
             document.getElementById('cfg-ip'),
             document.getElementById('cfg-user'),
             document.getElementById('cfg-pwd'),
-            document.getElementById('btn-toggle-pwd'),
             document.getElementById('btn-toggle-advanced')
         ];
 
@@ -419,7 +401,16 @@ class DvrTvApp {
 
         var newIp = ipInput ? ipInput.value.trim() : '192.168.100.2';
         var newUser = userInput ? userInput.value.trim() : 'admin';
-        var newPwd = pwdInput ? pwdInput.value : 'jr130182';
+        
+        // Senha: se digitou algo novo, salva o novo. Se deixou em branco, mantém a salva internamente.
+        var currentSavedPwd = localStorage.getItem('dvr_pwd') || this.dvr.password || 'jr130182';
+        var newPwd = currentSavedPwd;
+        if (this._restoreDefaultPwdRequested) {
+            newPwd = 'jr130182';
+        } else if (pwdInput && pwdInput.value && pwdInput.value.length > 0) {
+            newPwd = pwdInput.value;
+        }
+
         var newHttpPort = httpPortInput ? parseInt(httpPortInput.value || '80', 10) : 80;
         var newRtspPort = rtspPortInput ? parseInt(rtspPortInput.value || '554', 10) : 554;
 
@@ -447,7 +438,7 @@ class DvrTvApp {
         });
 
         this.closeSettingsModal();
-        this.showToast('Configurações salvas! Reconectando...', 3000);
+        this.showToast('Configurações salvas internamente! Reconectando...', 3000);
         this.connectDvr();
     }
 
@@ -460,12 +451,17 @@ class DvrTvApp {
 
         if (ipInput) ipInput.value = '192.168.100.2';
         if (userInput) userInput.value = 'admin';
-        if (pwdInput) pwdInput.value = 'jr130182';
+        if (pwdInput) {
+            pwdInput.value = '';
+            pwdInput.placeholder = '•••••••• (Padrão: será restaurada ao salvar)';
+        }
+        this._restoreDefaultPwdRequested = true;
         if (httpPortInput) httpPortInput.value = '80';
         if (rtspPortInput) rtspPortInput.value = '554';
 
-        this.showToast('Valores padrão restaurados. Clique em Salvar para aplicar.', 3500);
+        this.showToast('Valores padrão carregados. Clique em Salvar para aplicar.', 3500);
     }
+
     /* ==========================================================================
        NAVEGAÇÃO POR CONTROLE REMOTO E TECLADO
        ========================================================================== */
@@ -482,13 +478,7 @@ class DvrTvApp {
                 var currentEl = this.modalFocusableElements[this.modalFocusIndex];
                 if (currentEl) {
                     var id = currentEl.id;
-                    if (direction === 'right' && id === 'cfg-pwd') {
-                        var pwdBtnIdx = this.modalFocusableElements.indexOf(document.getElementById('btn-toggle-pwd'));
-                        if (pwdBtnIdx !== -1) this.modalFocusIndex = pwdBtnIdx;
-                    } else if (direction === 'left' && id === 'btn-toggle-pwd') {
-                        var pwdInputIdx = this.modalFocusableElements.indexOf(document.getElementById('cfg-pwd'));
-                        if (pwdInputIdx !== -1) this.modalFocusIndex = pwdInputIdx;
-                    } else if (id === 'btn-save-settings' || id === 'btn-default-settings' || id === 'btn-cancel-settings') {
+                    if (id === 'btn-save-settings' || id === 'btn-default-settings' || id === 'btn-cancel-settings') {
                         if (direction === 'right') {
                             this.modalFocusIndex = (this.modalFocusIndex + 1) % len;
                         } else {
