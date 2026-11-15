@@ -13,6 +13,11 @@ class TvStreamPlayer {
         this.isPlaying = false;
         this.fallbackTimer = null;
         this.fallbackImg = null;
+        // O snapshot JPEG é o caminho comprovadamente compatível com a grade
+        // nas TVs Samsung deste projeto. Mantemos AVPlay disponível para uma
+        // futura opção, mas não o usamos por padrão na câmera única enquanto
+        // o DVR/firmware não confirmar o RTSP.
+        this.preferDirectSnapshot = true;
 
         console.log('[Player] Samsung AVPlay disponível?', this.isAvPlayAvailable ? 'SIM' : 'NÃO (Modo Fallback Snapshot)');
         this.initDOM();
@@ -35,10 +40,13 @@ class TvStreamPlayer {
         this.currentStreamType = streamType;
         this.isPlaying = true;
 
-        if (this.isAvPlayAvailable) {
+        if (this.isAvPlayAvailable && !this.preferDirectSnapshot) {
             this.playAvPlay(channelId, streamType);
         } else {
-            this.playFallback(channelId, streamType);
+            // A grade usa sub-stream e é o caminho validado no DVR. A tela
+            // individual também começa nele, mesmo quando o badge está em HD;
+            // isso evita falha do stream principal 101/201/... no firmware.
+            this.playFallback(channelId, 2);
         }
     }
 
@@ -99,40 +107,39 @@ class TvStreamPlayer {
     }
 
     /**
-     * Fallback de vídeo de alta taxa via snapshots periódicos
+     * Fallback compatível com Samsung TV: usa a mesma imagem JPEG direta que
+     * já funciona na grade. Evitamos fetch/blob porque requisições cross-origin
+     * com headers de autenticação podem ser bloqueadas pelo WebView da TV.
+     * Atualização moderada para não saturar o DVR nem a rede.
      */
-    async playFallback(channelId, streamType) {
-        console.log('[Player] Executando streaming contínuo sem pausas (Taxa de 10ms)');
-        this.fallbackImg.src = this.dvrClient.getSnapshotUrl(channelId, streamType);
-        this.fallbackImg.style.display = 'block';
-
-        let lastBlobUrl = null;
-        let isFetching = false;
-
-        const updateFrame = async () => {
-            if (!this.isPlaying || this.currentChannelId !== channelId || isFetching) return;
-            isFetching = true;
-
+    playFallback(channelId, streamType) {
+        console.log('[Player] Fallback JPEG direto do sub-stream');
+        // Libera qualquer sessão AVPlay parcialmente aberta antes de exibir
+        // o fallback, evitando tela preta ou disputa pelo decodificador.
+        if (this.isAvPlayAvailable) {
             try {
-                const newBlobUrl = await this.dvrClient.fetchSnapshotBlob(channelId, streamType);
-                if (this.isPlaying && this.currentChannelId === channelId) {
-                    this.fallbackImg.src = newBlobUrl;
-                    if (lastBlobUrl) {
-                        URL.revokeObjectURL(lastBlobUrl);
-                    }
-                    lastBlobUrl = newBlobUrl;
-                } else {
-                    URL.revokeObjectURL(newBlobUrl);
+                var state = window.webapis.avplay.getState();
+                if (state === 'PLAYING' || state === 'PAUSED' || state === 'READY' || state === 'IDLE') {
+                    window.webapis.avplay.stop();
                 }
-            } catch (err) {
-                // Erro de snapshot temporário
-            } finally {
-                isFetching = false;
+                window.webapis.avplay.close();
+            } catch (cleanupErr) {}
+        }
+        this.fallbackImg.style.display = 'block';
+        this.fallbackImg.onerror = () => {
+            console.warn('[Player] Snapshot individual indisponível:', channelId, streamType);
+            if (streamType !== 2 && this.isPlaying && this.currentChannelId === channelId) {
+                this.fallbackImg.src = this.dvrClient.getSnapshotUrl(channelId, 2);
             }
+        };
 
+        const updateFrame = () => {
+            if (!this.isPlaying || this.currentChannelId !== channelId) return;
+            // A URL nova evita cache sem fazer uma requisição fetch sujeita a CORS.
+            this.fallbackImg.src = this.dvrClient.getSnapshotUrl(channelId, streamType);
             if (this.isPlaying && this.currentChannelId === channelId) {
-                // Taxa de quadros contínua (10ms)
-                this.fallbackTimer = setTimeout(updateFrame, 10);
+                // Aproximadamente 2 quadros/s: boa resposta, baixo consumo.
+                this.fallbackTimer = setTimeout(updateFrame, 500);
             }
         };
 

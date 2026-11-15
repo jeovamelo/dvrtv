@@ -87,7 +87,7 @@ class DvrTvApp {
             }
             await this.detectServerInfo();
             this.startSyncPolling();
-            return;
+            return false;
         }
 
         // Inicializar player de vídeo para a TV
@@ -191,8 +191,41 @@ class DvrTvApp {
     /* ==========================================================================
        DETECTAR SERVIDOR DE SINCRONIZAÇÃO / QR CODE
        ========================================================================== */
+    async resolveTvIpAddress() {
+        var network = (window.webapis && window.webapis.network) ? window.webapis.network : null;
+        if (!network) return '';
+        try {
+            // Samsung Product Network API: o método oficial é getIp().
+            // getIpAddress() não faz parte da API Samsung TV e sempre falhava
+            // em aparelhos reais, deixando o QR Code sem endereço.
+            if (typeof network.getIp === 'function') {
+                var directIp = network.getIp();
+                if (directIp && /^\d{1,3}(\.\d{1,3}){3}$/.test(directIp)) return directIp;
+            }
+        } catch (e) {}
+        try {
+            // Só confirma que a rede está pronta; não substitui o IP por um
+            // endereço do navegador/PC.
+            if (typeof network.isConnectedToGateway === 'function' && !network.isConnectedToGateway()) {
+                return '';
+            }
+        } catch (e2) {}
+        return '';
+    }
+
+    isTizenRuntime() {
+        return typeof window.tizen !== 'undefined' || typeof window.webapis !== 'undefined';
+    }
+
     async detectServerInfo() {
         var self = this;
+        var tvIp = await this.resolveTvIpAddress();
+        if (tvIp) {
+            self.tvIpAddress = tvIp;
+            self.detectedServerIp = tvIp;
+            self.detectedServerPort = window.location.port || '8080';
+            self.mobileWebUrl = 'http://' + tvIp + ':' + self.detectedServerPort + '/mobile';
+        }
         var defaultHost = (window.location && window.location.hostname && window.location.hostname !== '') 
             ? window.location.hostname 
             : '192.168.100.74';
@@ -209,7 +242,7 @@ class DvrTvApp {
             var res = await fetch(baseApi + '/api/info');
             if (res.ok) {
                 var data = await res.json();
-                if (data && data.mobileUrl) {
+                if (data && data.mobileUrl && !tvIp && !self.isTizenRuntime()) {
                     self.mobileWebUrl = data.mobileUrl;
                     self.detectedServerIp = data.serverIp;
                     self.detectedServerPort = data.port;
@@ -220,9 +253,11 @@ class DvrTvApp {
             // Silencioso em caso de servidor indisponível
         }
 
-        self.mobileWebUrl = 'http://' + defaultHost + ':' + defaultPort + '/mobile';
-        self.detectedServerIp = defaultHost;
-        self.detectedServerPort = defaultPort;
+        if (!self.mobileWebUrl && !this.isTizenRuntime()) {
+            self.mobileWebUrl = 'http://' + defaultHost + ':' + defaultPort + '/mobile';
+            self.detectedServerIp = defaultHost;
+            self.detectedServerPort = defaultPort;
+        }
     }
 
     updateBarLabels() {
@@ -422,6 +457,9 @@ class DvrTvApp {
         var btnSave = document.getElementById('btn-save-settings');
         if (btnSave) btnSave.addEventListener('click', function() { self.saveSettings(); });
 
+        var btnDiscoverDvr = document.getElementById('btn-discover-dvr');
+        if (btnDiscoverDvr) btnDiscoverDvr.addEventListener('click', function() { self.discoverDvr(); });
+
         var btnDefault = document.getElementById('btn-default-settings');
         if (btnDefault) btnDefault.addEventListener('click', function() { self.restoreDefaultSettings(); });
 
@@ -476,7 +514,8 @@ class DvrTvApp {
                 onBlue: function() { self.handleBlue(); },
                 onChannelUp: function() { self.nextCamera(); },
                 onChannelDown: function() { self.prevCamera(); },
-                onNumber: function(num) { self.handleNumber(num); }
+                onNumber: function(num) { self.handleNumber(num); },
+                isFormNavigation: function() { return self.currentFocusZone === 'modal' && self.isModalOpen; }
             });
         }
     }
@@ -758,10 +797,12 @@ class DvrTvApp {
             this.renderGrid();
             this.startGridRefresh();
             this.showToast('DVR conectado: ' + channels.length + ' canais identificados');
+            return true;
         } catch (e) {
             console.error('[App] Erro na conexão com o DVR:', e);
             this.setConnectionStatus('offline', 'Falha na Conexão');
             this.showToast('Erro ao conectar ao DVR: ' + e.message, 5000);
+            return false;
         }
     }
 
@@ -939,7 +980,7 @@ class DvrTvApp {
     /* ==========================================================================
        MODAL QR CODE
        ========================================================================== */
-    openQrModal(fromOnboarding) {
+    async openQrModal(fromOnboarding) {
         this.openedFromOnboarding = !!fromOnboarding;
         this.isQrModalOpen = true;
         this.currentFocusZone = 'qrcode';
@@ -950,7 +991,11 @@ class DvrTvApp {
             modal.style.display = 'flex';
         }
 
-        var targetUrl = this.mobileWebUrl || ('http://' + (this.detectedServerIp || '192.168.100.74') + ':8080/mobile');
+        // A rede da TV pode terminar de subir alguns instantes depois da tela.
+        // Repetimos a consulta somente pela API Samsung, sem fallback para o PC.
+        // O QR Code abre a página hospedada na VPS. A TV não hospeda Node.js
+        // nem a rota /mobile; o IP local da TV será usado apenas no pareamento.
+        var targetUrl = 'https://dvr.ilocseguro.com/mobile';
         var addrEl = document.getElementById('qr-address-url');
         if (addrEl) addrEl.textContent = targetUrl;
 
@@ -1129,6 +1174,7 @@ class DvrTvApp {
         refreshModalFocusList() {
         var elements = [
             document.getElementById('cfg-ip'),
+            document.getElementById('btn-discover-dvr'),
             document.getElementById('cfg-user'),
             document.getElementById('cfg-pwd'),
             document.getElementById('cfg-http-port'),
@@ -1277,6 +1323,29 @@ class DvrTvApp {
             if (pwdInput) pwdInput.focus();
         } finally {
             if (saveBtn) saveBtn.disabled = false;
+        }
+    }
+
+    async discoverDvr() {
+        var input = document.getElementById('cfg-ip');
+        var banner = document.getElementById('cfg-status-banner');
+        var button = document.getElementById('btn-discover-dvr');
+        if (button) { button.disabled = true; button.textContent = '⌕ Procurando...'; }
+        if (banner) { banner.style.display = 'block'; banner.className = 'cfg-status-banner loading'; banner.textContent = 'Procurando DVRs na rede local...'; }
+        try {
+            var base = window.location.origin;
+            var response = await fetch(base + '/api/dvr/discover', { cache: 'no-store' });
+            var data = await response.json();
+            if (data.success && data.devices && data.devices.length) {
+                if (input) input.value = data.devices[0].ip;
+                if (banner) { banner.className = 'cfg-status-banner success'; banner.textContent = 'DVR encontrado em ' + data.devices[0].ip + '. Verifique os dados e salve.'; }
+            } else if (banner) {
+                banner.className = 'cfg-status-banner error'; banner.textContent = 'Nenhum DVR encontrado na rede local.';
+            }
+        } catch (error) {
+            if (banner) { banner.className = 'cfg-status-banner error'; banner.textContent = 'Não foi possível buscar o DVR: ' + error.message; }
+        } finally {
+            if (button) { button.disabled = false; button.textContent = '⌕ Buscar IP'; }
         }
     }
 
@@ -1457,6 +1526,13 @@ class DvrTvApp {
             } else if (direction === 'down') {
                 this.modalFocusIndex = (this.modalFocusIndex + 1) % len;
                 this.updateModalFocus();
+            } else if (direction === 'left' || direction === 'right') {
+                var active = this.modalFocusableElements[this.modalFocusIndex];
+                if (active && active.tagName === 'SELECT') {
+                    var step = direction === 'right' ? 1 : -1;
+                    active.selectedIndex = (active.selectedIndex + step + active.options.length) % active.options.length;
+                    active.dispatchEvent(new Event('change', { bubbles: true }));
+                }
             }
             return;
         }
@@ -1870,9 +1946,18 @@ class DvrTvApp {
     /* ==========================================================================
        SINCRONIZAÇÃO COM O CONTROLE MOBILE
        ========================================================================== */
-    syncStateToServer() {
-        var baseApi = (window.location && window.location.origin && window.location.origin !== 'null')
-            ? window.location.origin : 'http://192.168.100.74:8081';
+    getRemoteControlServerBase() {
+        // O celular acessa a VPS. No teste pelo PC, o emulador também precisa
+        // consultar a mesma fila na VPS; caso contrário o comando fica preso
+        // no servidor remoto e o PC consulta apenas localhost.
+        if (this.serverUrl && /^https?:\/\//i.test(this.serverUrl)) {
+            return this.serverUrl.replace(/\/$/, '');
+        }
+        return 'https://dvr.ilocseguro.com';
+    }
+
+    syncStateToServer(extraState) {
+        var baseApi = this.getRemoteControlServerBase();
 
         var visibleChannels = this.getVisibleChannels();
         var selectedCh = (this.isFullScreen && this.fullScreenChannel) 
@@ -1897,6 +1982,14 @@ class DvrTvApp {
             })
         };
 
+        if (extraState) {
+            for (var stateKey in extraState) {
+                if (Object.prototype.hasOwnProperty.call(extraState, stateKey)) {
+                    statePayload[stateKey] = extraState[stateKey];
+                }
+            }
+        }
+
         fetch(baseApi + '/api/remote/state', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1909,8 +2002,7 @@ class DvrTvApp {
         if (this.syncPollTimer) clearInterval(this.syncPollTimer);
 
         this.syncPollTimer = setInterval(async function() {
-            var baseApi = (window.location && window.location.origin && window.location.origin !== 'null')
-                ? window.location.origin : 'http://192.168.100.74:8081';
+            var baseApi = self.getRemoteControlServerBase();
 
             try {
                 var res = await fetch(baseApi + '/api/remote/poll');
@@ -2000,6 +2092,8 @@ class DvrTvApp {
 
             case 'configure_dvr':
                 if (val && typeof val === 'object') {
+                    var configRequestId = val.requestId || null;
+                    this.syncStateToServer({ configResult: { requestId: configRequestId, status: 'testing' } });
                     var ip = val.ip ? val.ip.trim() : '';
                     var user = val.username ? val.username.trim() : (val.user ? val.user.trim() : '');
                     var pwd = val.password ? val.password : (val.pwd ? val.pwd : '');
@@ -2035,8 +2129,13 @@ class DvrTvApp {
                     this.closeSettingsModal();
                     this.closeDrawer();
                     this.showToast('Configurações recebidas. Validando câmeras...', 2500);
-                    this.connectDvr().then(function() {
-                        if (this.channels && this.channels.length > 0) {
+                    this.connectDvr().then(function(ok) {
+                        this.syncStateToServer({ configResult: {
+                            requestId: configRequestId,
+                            status: ok ? 'success' : 'error',
+                            message: ok ? 'DVR conectado com sucesso.' : 'A TV não conseguiu autenticar ou acessar o DVR.'
+                        }});
+                        if (ok && this.channels && this.channels.length > 0) {
                             this.enterCameraGrid(this.channels);
                         }
                     }.bind(this));
@@ -2115,4 +2214,9 @@ class DvrTvApp {
 
 window.addEventListener('DOMContentLoaded', function() {
     window.app = new DvrTvApp();
+    if (window.DvrSmartView) {
+        window.DvrSmartView.initReceiver(function(payload) {
+            if (window.app && payload) window.app.executeRemoteCommand(payload);
+        });
+    }
 });

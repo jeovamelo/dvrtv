@@ -557,6 +557,8 @@
     <!-- Toast de Feedback -->
     <div id="toast" class="toast">Comando enviado!</div>
 
+    <script src="../js/msf-2.3.4.min.js?v=2.3.4"></script>
+    <script src="../js/smartview-bridge.js?v=1"></script>
     <script>
         let latestTvState = null;
         let sessionToken = localStorage.getItem('mobile_session_token') || '';
@@ -650,6 +652,11 @@
             }
 
             try {
+                const directPayload = { command: cmd, channelId: channelId, value: value };
+                if (window.DvrSmartView && window.DvrSmartView.send(directPayload)) {
+                    showToast('Comando enviado diretamente à TV');
+                    return { success: true, direct: true };
+                }
                 const res = await fetch('/api/remote/command', {
                     method: 'POST',
                     headers: {
@@ -675,8 +682,10 @@
                 }
 
                 showToast('Comando enviado');
+                return data;
             } catch (err) {
                 showToast('Falha na comunicação');
+                return { success: false, error: err.message };
             }
         }
 
@@ -760,24 +769,33 @@
             btnSave.disabled = true;
 
             try {
-                const res = await fetch('/api/dvr/test-config', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ip, user, pwd, httpPort, rtspPort })
+                // A validação deve ocorrer na TV (ou no servidor local emulando a TV),
+                // pois somente ela alcança o DVR na rede local.
+                const requestId = 'cfg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+                const commandResult = await sendCommand('configure_dvr', null, {
+                    requestId,
+                    ip: ip,
+                    username: user,
+                    password: pwd,
+                    httpPort: httpPort,
+                    rtspPort: rtspPort
                 });
-                const data = await res.json();
+                if (!commandResult || !commandResult.success) {
+                    throw new Error('A TV não recebeu a configuração. Verifique se o aplicativo está aberto.');
+                }
 
-                if (!res.ok || !data.success) {
-                    // REGRA: Se a configuração não der certo, mantém a tela aberta e pede para verificar e corrigir
+                banner.textContent = '⏳ A TV está testando o DVR na rede local...';
+                const configOk = await waitForTvConfigResult(requestId, 20000);
+                if (!configOk.success) {
                     banner.style.display = 'block';
                     banner.style.background = 'rgba(239, 68, 68, 0.2)';
                     banner.style.border = '1px solid rgba(239, 68, 68, 0.6)';
                     banner.style.color = '#fca5a5';
-                    banner.textContent = '❌ Falha ao conectar ao DVR: Verifique o IP, Usuário e Senha e tente novamente (' + (data.error || 'DVR inacessível') + ').';
+                    banner.textContent = '❌ ' + (configOk.message || 'A TV não conseguiu conectar ao DVR.');
                     return;
                 }
 
-                // SUCESSO!
+                // SUCESSO confirmado pela TV
                 banner.style.display = 'block';
                 banner.style.background = 'rgba(16, 185, 129, 0.2)';
                 banner.style.border = '1px solid rgba(16, 185, 129, 0.6)';
@@ -797,15 +815,6 @@
                 setConfigCookie('dvr_rtsp_port', rtspPort);
                 setConfigCookie('dvr_offline', offline);
 
-                // Envia comando para a TV configurar o DVR e abrir as câmeras imediatamente
-                await sendCommand('configure_dvr', null, {
-                    ip: ip,
-                    username: user,
-                    password: pwd,
-                    httpPort: httpPort,
-                    rtspPort: rtspPort
-                });
-
                 if (grid) sendCommand('set_grid', null, grid);
                 if (offline === 'false') sendCommand('toggle_offline', null, false);
 
@@ -824,6 +833,22 @@
             } finally {
                 btnSave.disabled = false;
             }
+        }
+
+        async function waitForTvConfigResult(requestId, timeoutMs) {
+            const started = Date.now();
+            while (Date.now() - started < timeoutMs) {
+                await fetchTvState();
+                const result = latestTvState && latestTvState.configResult;
+                if (result && result.requestId === requestId && result.status === 'success') {
+                    return { success: true, message: result.message };
+                }
+                if (result && result.requestId === requestId && result.status === 'error') {
+                    return { success: false, message: result.message };
+                }
+                await new Promise(resolve => setTimeout(resolve, 750));
+            }
+            return { success: false, message: 'A TV não respondeu ao teste. Confirme que o aplicativo está aberto e conectado.' };
         }
 
         async function fetchTvState() {
@@ -857,11 +882,11 @@
             const bw = document.getElementById('sync-bandwidth');
 
             if (connected) {
-                dot.className = 'status-dot';
-                label.textContent = 'Conectado';
+                if (dot) dot.className = 'status-dot';
+                if (label) label.textContent = 'Conectado';
             } else {
-                dot.className = 'status-dot offline';
-                label.textContent = 'Desconectado';
+                if (dot) dot.className = 'status-dot offline';
+                if (label) label.textContent = 'Desconectado';
             }
             if (bw) bw.textContent = '• ' + (bandwidth || '0 KB/s');
         }
@@ -903,6 +928,9 @@
         }
 
         async function initializeMobilePage() {
+            if (window.DvrSmartView) window.DvrSmartView.initSender(function (connected) {
+                if (connected) showToast('Conectado diretamente à TV');
+            });
             try {
                 const infoRes = await fetch('/api/info', { cache: 'no-store' });
                 const info = await infoRes.json();

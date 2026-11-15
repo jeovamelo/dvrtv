@@ -13,15 +13,46 @@ let dvrConfigured = false;
 
 const dataDir = path.join(__dirname, 'data');
 const dvrConfigPath = path.join(dataDir, 'dvr-config.json');
+const configKey = crypto.createHash('sha256')
+    .update(String(process.env.DVR_CONFIG_KEY || 'dvr-tv-development-key-change-me'))
+    .digest();
+
+function encryptConfig(config) {
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', configKey, iv);
+    const encrypted = Buffer.concat([cipher.update(JSON.stringify(config), 'utf8'), cipher.final()]);
+    return {
+        version: 1,
+        algorithm: 'aes-256-gcm',
+        iv: iv.toString('base64'),
+        tag: cipher.getAuthTag().toString('base64'),
+        data: encrypted.toString('base64'),
+        updatedAt: new Date().toISOString()
+    };
+}
+
+function decryptConfig(saved) {
+    if (!saved || saved.version !== 1 || !saved.iv || !saved.tag || !saved.data) return null;
+    const decipher = crypto.createDecipheriv('aes-256-gcm', configKey, Buffer.from(saved.iv, 'base64'));
+    decipher.setAuthTag(Buffer.from(saved.tag, 'base64'));
+    return JSON.parse(Buffer.concat([
+        decipher.update(Buffer.from(saved.data, 'base64')),
+        decipher.final()
+    ]).toString('utf8'));
+}
+
 try {
     if (fs.existsSync(dvrConfigPath)) {
         const saved = JSON.parse(fs.readFileSync(dvrConfigPath, 'utf8'));
-        if (saved && saved.ip && saved.username && saved.password) {
-            defaultDvrHost = saved.ip;
-            defaultDvrPort = parseInt(saved.httpPort || 80, 10);
-            defaultDvrUser = saved.username;
-            defaultDvrPass = saved.password;
+        const config = saved.version === 1 ? decryptConfig(saved) : saved;
+        if (config && config.ip && config.username && config.password) {
+            defaultDvrHost = config.ip;
+            defaultDvrPort = parseInt(config.httpPort || 80, 10);
+            defaultDvrUser = config.username;
+            defaultDvrPass = config.password;
             dvrConfigured = true;
+            // Migra configuração antiga em texto para o formato criptografado.
+            if (saved.version !== 1) persistDvrConfig(config);
         }
     }
 } catch (err) {
@@ -30,14 +61,14 @@ try {
 
 function persistDvrConfig(config) {
     fs.mkdirSync(dataDir, { recursive: true });
-    fs.writeFileSync(dvrConfigPath, JSON.stringify({
+    const payload = {
         ip: config.ip,
         username: config.username,
         password: config.password,
         httpPort: parseInt(config.httpPort || 80, 10),
         rtspPort: parseInt(config.rtspPort || 554, 10),
-        updatedAt: new Date().toISOString()
-    }, null, 2), 'utf8');
+    };
+    fs.writeFileSync(dvrConfigPath, JSON.stringify(encryptConfig(payload), null, 2), 'utf8');
 }
 
 // Detectar IP local primário (preferencialmente rede 192.168.100.x ou rede local não-interna)
@@ -75,6 +106,7 @@ let tvState = {
     quality: 'fluido',   // 'fluido' ou 'hd'
     gridMode: 'auto',    // 'auto', '1x1', '2x2', '3x3', '4x4', '5x5', '6x6'
     showOffline: true,
+    configResult: null,
     lastUpdate: Date.now(),
     channels: []
 };
@@ -229,7 +261,7 @@ const server = http.createServer((req, res) => {
         const info = {
             serverIp: LOCAL_IP,
             port: PORT,
-            mobileUrl: 'http://' + LOCAL_IP + ':' + PORT + '/mobile',
+            mobileUrl: 'https://dvr.ilocseguro.com/mobile',
             configured: dvrConfigured,
             dvrHost: defaultDvrHost,
             dvrPort: defaultDvrPort
@@ -239,7 +271,38 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 1.1 API: Testar Conexão com o DVR
+    // 1.1 API: Descobrir DVRs na sub-rede local
+    if (pathname === '/api/dvr/discover' && req.method === 'GET') {
+        const prefix = LOCAL_IP.split('.').slice(0, 3).join('.') + '.';
+        const hosts = Array.from({ length: 254 }, (_, i) => prefix + (i + 1));
+        const found = [];
+        let cursor = 0;
+        const worker = async () => {
+            while (cursor < hosts.length) {
+                const host = hosts[cursor++];
+                await new Promise(resolve => {
+                    const request = http.request({ host, port: 80, path: '/ISAPI/System/deviceInfo', method: 'GET', timeout: 350 }, response => {
+                        const serverHeader = String(response.headers.server || '').toLowerCase();
+                        if (response.statusCode === 200 || response.statusCode === 401 || serverHeader.includes('hikvision')) {
+                            found.push({ ip: host, port: 80, status: response.statusCode, server: response.headers.server || '' });
+                        }
+                        response.resume();
+                        response.on('end', resolve);
+                    });
+                    request.on('timeout', () => request.destroy());
+                    request.on('error', resolve);
+                    request.end();
+                });
+            }
+        };
+        Promise.all(Array.from({ length: 20 }, worker)).then(() => {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, subnet: prefix + '0/24', devices: found }));
+        });
+        return;
+    }
+
+    // 1.2 API: Testar Conexão com o DVR
     if (pathname === '/api/dvr/test-config' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk);
@@ -324,8 +387,7 @@ const server = http.createServer((req, res) => {
     // 3. API Mobile: Obter Estado Atual da TV
     if (pathname === '/api/mobile/state' && req.method === 'GET') {
         const token = req.headers['x-session-token'] || parsedUrl.searchParams.get('token');
-        const bodyMayCreateSession = !token;
-        if (!isValidSession(token) && cmdData?.command !== 'configure_dvr') {
+        if (!isValidSession(token)) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: 'Sessão expirada ou não autenticada' }));
             return;

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0, user-scalable=no">
     <title>DVR TV - Samsung Smart TV</title>
-    <link rel="stylesheet" href="css/style.css?v=2.6">
+    <link rel="stylesheet" href="css/style.css?v=2.7">
 </head>
 <body>
     <!-- Cabeçalho Superior Translúcido Estilo Netflix (Auto-ocultável) -->
@@ -209,7 +209,7 @@
                         
                         <div class="qr-address-box">
                             <span class="qr-address-label">Ou digite no navegador do celular:</span>
-                            <span id="qr-address-url" class="qr-address-url">http://192.168.100.74:8080/mobile</span>
+                            <span id="qr-address-url" class="qr-address-url">https://dvr.ilocseguro.com/mobile</span>
                         </div>
 
                         <div class="qr-notice">
@@ -349,7 +349,10 @@
 
                         <div class="form-field-group">
                             <label for="cfg-ip">Endereço IP do DVR</label>
-                            <input type="text" id="cfg-ip" class="form-input" placeholder="ex: 192.168.1.100" autocomplete="off" spellcheck="false" tabindex="0">
+                            <div class="ip-discovery-row">
+                                <input type="text" id="cfg-ip" class="form-input" placeholder="ex: 192.168.1.100" autocomplete="off" spellcheck="false" tabindex="0">
+                                <button type="button" id="btn-discover-dvr" class="btn-discover-dvr" tabindex="0" title="Buscar DVR na rede">⌕ Buscar IP</button>
+                            </div>
                             <span class="input-hint">Endereço IP local do DVR na sua rede (ex: 192.168.100.2)</span>
                         </div>
 
@@ -448,6 +451,9 @@
 
             <!-- Barra de Ações Fixa no Rodapé da Página -->
             <footer class="settings-full-footer">
+                <div class="settings-navigation-hint" aria-label="Instruções de navegação">
+                    ▲▼ Navegar entre campos&nbsp;&nbsp; ◄► Alterar opção&nbsp;&nbsp; OK Editar/Selecionar&nbsp;&nbsp; VOLTAR Sair
+                </div>
                 <div class="footer-action-left">
                     <button type="button" id="btn-default-settings" class="settings-footer-btn btn-secondary" tabindex="0">
                         <span>🔄 Restaurar Padrões</span>
@@ -532,11 +538,15 @@
     <div id="toast-notification" class="toast-notification"></div>
 
     <!-- Scripts da Aplicação -->
-    <script src="js/sha256.js?v=2.4"></script>
-    <script src="js/qrcode.min.js?v=2.4"></script>
-    <script src="js/dvr-api.js?v=2.4"></script>
-    <script src="js/avplayer.js?v=2.4"></script>
-    <script src="js/remote-keys.js?v=2.4"></script>
-    <script src="js/app.js?v=2.6"></script>
+    <!-- Samsung Product API (resolvido pela TV Tizen para $WEBAPIS) -->
+    <script src="$WEBAPIS/webapis/webapis.js"></script>
+    <script src="js/sha256.js?v=2.8"></script>
+    <script src="js/qrcode.min.js?v=2.8"></script>
+    <script src="js/msf-2.3.4.min.js?v=2.3.4"></script>
+    <script src="js/smartview-bridge.js?v=1"></script>
+    <script src="js/dvr-api.js?v=2.8"></script>
+    <script src="js/avplayer.js?v=2.9"></script>
+    <script src="js/remote-keys.js?v=2.8"></script>
+    <script src="js/app.js?v=2.8"></script>
 </body>
 </html>

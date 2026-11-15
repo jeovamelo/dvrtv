@@ -35,6 +35,16 @@ class RemoteControlManager {
             var isTextInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
             var isSelect = target && target.tagName === 'SELECT';
 
+            // No formulário Tizen, as setas pertencem ao gerenciador de foco,
+            // mesmo quando um input está ativo. Isso evita prender o usuário
+            // no campo IP por causa do cursor de texto.
+            if (self.callbacks.isFormNavigation && self.callbacks.isFormNavigation()) {
+                if (keyCode === 38 && self.callbacks.onUp) { self.callbacks.onUp(); e.preventDefault(); return; }
+                if (keyCode === 40 && self.callbacks.onDown) { self.callbacks.onDown(); e.preventDefault(); return; }
+                if (keyCode === 37 && self.callbacks.onLeft) { self.callbacks.onLeft(); e.preventDefault(); return; }
+                if (keyCode === 39 && self.callbacks.onRight) { self.callbacks.onRight(); e.preventDefault(); return; }
+            }
+
             // ==================================================================
             // REGRA CRÍTICA PARA DIGITAÇÃO EM CAMPOS DE TEXTO NO PC:
             // Quando o usuário está com foco em um <input>, permite TODAS as teclas:
@@ -49,9 +59,22 @@ class RemoteControlManager {
                 }
                 if (keyCode === 13) { // Enter salva
                     if (self.callbacks.onEnter) self.callbacks.onEnter();
+                    e.preventDefault();
                     return;
                 }
-                // Permite toda e qualquer digitação no input livremente!
+                // No formulário da TV, ↑/↓ trocam de campo; ←/→ continuam
+                // disponíveis para mover o cursor dentro do texto.
+                if (keyCode === 38 && self.callbacks.onUp) {
+                    self.callbacks.onUp();
+                    e.preventDefault();
+                    return;
+                }
+                if (keyCode === 40 && self.callbacks.onDown) {
+                    self.callbacks.onDown();
+                    e.preventDefault();
+                    return;
+                }
+                // Permite letras, números, pontos, símbolos, Backspace e Delete.
                 return;
             }
 
@@ -61,8 +84,11 @@ class RemoteControlManager {
                     e.preventDefault();
                     return;
                 }
-                // No select, permite usar setas para navegar entre opções
+                // ↑/↓ mudam de campo; ←/→ alteram a opção selecionada.
                 if (keyCode === 38 || keyCode === 40) {
+                    if (keyCode === 38 && self.callbacks.onUp) self.callbacks.onUp();
+                    if (keyCode === 40 && self.callbacks.onDown) self.callbacks.onDown();
+                    e.preventDefault();
                     return;
                 }
             }
