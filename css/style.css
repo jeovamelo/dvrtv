@@ -202,10 +202,24 @@ html, body {
 }
 
 .camera-card.focused {
-    border-color: #00d2ff;
-    box-shadow: 0 0 16px rgba(0, 210, 255, 0.75), inset 0 0 6px rgba(0, 210, 255, 0.4);
-    transform: scale(1.02);
-    z-index: 5;
+    border: 3.5px solid #00f0ff !important;
+    box-shadow: 0 0 22px rgba(0, 240, 255, 0.95), inset 0 0 8px rgba(0, 240, 255, 0.5);
+    transform: scale(1.035);
+    z-index: 25;
+}
+
+.camera-card.focused .camera-overlay-top {
+    border-left: 3px solid #00f0ff;
+    background: rgba(0, 240, 255, 0.25);
+    backdrop-filter: blur(4px);
+}
+
+.camera-card.focused .cam-badge-id {
+    color: #ffffff;
+    background: #0284c7;
+    padding: 1px 5px;
+    border-radius: 3px;
+    box-shadow: 0 0 8px rgba(2, 132, 199, 0.8);
 }
 
 .card-video-wrap {
@@ -358,8 +372,9 @@ html, body {
 
 .fs-cam-info {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
 }
 
 .fs-cam-title {
@@ -376,6 +391,9 @@ html, body {
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.5px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    line-height: 1;
 }
 
 .fs-quality-dot {
@@ -385,21 +403,25 @@ html, body {
     display: inline-block;
 }
 
-/* Cores Diferenciadas para Fluido e HD abaixo do nome */
+/* Cores Diferenciadas para Fluido e HD logo após a legenda */
 .fs-quality-tag.quality-fluido {
     color: #10b981; /* Verde esmeralda */
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.45);
 }
 .fs-quality-tag.quality-fluido .fs-quality-dot {
     background-color: #10b981;
-    box-shadow: 0 0 6px #10b981;
+    box-shadow: 0 0 8px #10b981;
 }
 
 .fs-quality-tag.quality-hd {
     color: #38bdf8; /* Azul ciano */
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.45);
 }
 .fs-quality-tag.quality-hd .fs-quality-dot {
     background-color: #38bdf8;
-    box-shadow: 0 0 6px #38bdf8;
+    box-shadow: 0 0 8px #38bdf8;
 }
 
 .fs-bottom-right {

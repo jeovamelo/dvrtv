@@ -526,7 +526,7 @@ class DvrTvApp {
 
         // Se o foco já estiver no botão Configurações no topo:
         if (this.currentFocusZone === 'header') {
-            if (direction === 'down') {
+            if (direction === 'down' || direction === 'left') {
                 this.currentFocusZone = 'grid';
                 this.updateCardFocus();
             }
