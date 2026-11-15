@@ -9,7 +9,7 @@ class TvStreamPlayer {
         this.dvrClient = dvrClient;
         this.isAvPlayAvailable = (typeof window.webapis !== 'undefined' && typeof window.webapis.avplay !== 'undefined');
         this.currentChannelId = null;
-        this.currentStreamType = 1; // 1 = Main (1080P), 2 = Sub (Fluido)
+        this.currentStreamType = 2; // 2 = Sub-stream Fluido (padrão 15-25 FPS), 1 = Main (1080P)
         this.isPlaying = false;
         this.fallbackTimer = null;
         this.fallbackImg = null;
@@ -29,7 +29,7 @@ class TvStreamPlayer {
     /**
      * Inicia a reprodução de um canal
      */
-    async play(channelId, streamType = 1) {
+    async play(channelId, streamType = 2) {
         this.stop();
         this.currentChannelId = channelId;
         this.currentStreamType = streamType;
@@ -102,13 +102,16 @@ class TvStreamPlayer {
      * Fallback de vídeo de alta taxa via snapshots periódicos
      */
     async playFallback(channelId, streamType) {
-        console.log('[Player] Executando streaming contínuo via snapshots (Fallback)');
+        console.log('[Player] Executando streaming contínuo sem pausas (Taxa de 10ms)');
         this.fallbackImg.src = this.dvrClient.getSnapshotUrl(channelId, streamType);
         this.fallbackImg.style.display = 'block';
 
         let lastBlobUrl = null;
+        let isFetching = false;
+
         const updateFrame = async () => {
-            if (!this.isPlaying || this.currentChannelId !== channelId) return;
+            if (!this.isPlaying || this.currentChannelId !== channelId || isFetching) return;
+            isFetching = true;
 
             try {
                 const newBlobUrl = await this.dvrClient.fetchSnapshotBlob(channelId, streamType);
@@ -123,11 +126,13 @@ class TvStreamPlayer {
                 }
             } catch (err) {
                 // Erro de snapshot temporário
+            } finally {
+                isFetching = false;
             }
 
             if (this.isPlaying && this.currentChannelId === channelId) {
-                // Intervalo de ~500ms para stream fluido sem sobrecarregar a rede
-                this.fallbackTimer = setTimeout(updateFrame, 500);
+                // Taxa de quadros contínua (10ms)
+                this.fallbackTimer = setTimeout(updateFrame, 10);
             }
         };
 

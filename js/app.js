@@ -20,7 +20,7 @@ class DvrTvApp {
         this.focusedIndex = 0;
         this.isFullScreen = false;
         this.fullScreenChannel = null;
-        this.streamQuality = 1; // 1 = HD (1080P), 2 = Fluido
+        this.streamQuality = 2; // 2 = Sub-stream Fluido (padrão 15-25 FPS), 1 = HD (1080P)
         this.currentFocusZone = 'grid'; // 'grid' ou 'header'
 
         // Estado do Modal de Configurações
@@ -301,7 +301,7 @@ class DvrTvApp {
                     newImg.src = nextUrl;
                 }
             });
-        }, 3500);
+        }, 1200); // Grade dinâmica atualizada a cada 1.2s
     }
 
     /* ==========================================================================
