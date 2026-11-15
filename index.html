@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Cabeçalho Superior -->
-    <header class="app-header">
+    <!-- Cabeçalho Superior Discreto (Sem botão de configurações superior) -->
+    <header class="app-header" id="app-header">
         <div class="header-left">
             <div class="app-logo">TV</div>
             <h1 id="dvr-title" class="dvr-title">DVR01Casa • iDS-7216HQHI-M1/XT</h1>
@@ -18,10 +18,6 @@
             </div>
         </div>
         <div class="header-right">
-            <button id="btn-settings" class="btn-settings" title="Configurações (Tecla Azul)" tabindex="0">
-                <span class="icon-gear">⚙️</span>
-                <span>Configurações</span>
-            </button>
             <div class="clock-widget">
                 <div id="clock-time" class="clock-time">--:--:--</div>
                 <div id="clock-date" class="clock-date">--</div>
@@ -29,15 +25,15 @@
         </div>
     </header>
 
-    <!-- Área Principal de Exibição (Grade de Câmeras) -->
-    <main class="main-container">
+    <!-- Área Principal de Exibição (Grade Dinâmica de Câmeras) -->
+    <main class="main-container" id="main-container">
         <div id="camera-grid" class="camera-grid layout-4x4">
             <!-- Os cards de câmeras são gerados dinamicamente via app.js -->
         </div>
     </main>
 
-    <!-- Visualização Individualizada (Player de Vídeo) -->
-    <div id="fullscreen-view" class="fullscreen-view">
+    <!-- Visualização em Tela Cheia Real (Sem cabeçalho, sem rodapé permanente) -->
+    <div id="fullscreen-view" class="fullscreen-view" style="display: none;">
         <div class="fullscreen-video-wrapper">
             <div id="fullscreen-player-container" class="fullscreen-player-container">
                 <!-- Player AVPlay RTSP ou Fallback -->
@@ -48,39 +44,286 @@
             </div>
         </div>
 
-        <!-- Barra Inferior Discreta (Abaixo da Imagem) -->
-        <div class="fullscreen-bottom-bar">
-            <div class="fs-bottom-left">
-                <div class="fs-cam-info">
-                    <h2 id="fs-cam-title" class="fs-cam-title">Camera 01 (CH 1)</h2>
-                    <div id="fs-cam-badge" class="fs-quality-tag quality-fluido">
-                        <span class="fs-quality-dot"></span>
-                        <span id="fs-quality-text">Fluido</span>
+        <!-- Indicador Flutuante Discreto que some após 2.5s -->
+        <div id="fs-toast-badge" class="fs-toast-badge">
+            <span id="fs-badge-title">Camera 01 (CH 1)</span>
+            <span id="fs-badge-sep">•</span>
+            <span id="fs-badge-quality" class="fs-tag-fluido">● Fluido</span>
+        </div>
+    </div>
+
+    <!-- Menu Inferior Auto-Ocultável com Navegação por Setas e OK -->
+    <footer id="bottom-menu-bar" class="bottom-menu-bar visible">
+        <div class="bottom-menu-actions">
+            <button id="btn-bar-menu" class="bar-action-btn" tabindex="0" title="Abrir Menu Principal">
+                <span class="bar-icon">☰</span>
+                <span class="bar-label">Menu</span>
+                <span class="bar-shortcut">VOLTAR</span>
+            </button>
+
+            <button id="btn-bar-settings" class="bar-action-btn" tabindex="0" title="Configurações (Tecla Azul)">
+                <span class="bar-icon">⚙️</span>
+                <span class="bar-label">Configurações</span>
+                <span class="btn-pill blue"></span>
+            </button>
+
+            <button id="btn-bar-grid" class="bar-action-btn" tabindex="0" title="Mudar Grade (Tecla Verde)">
+                <span class="bar-icon">🔲</span>
+                <span class="bar-label" id="bar-label-grid">Grade: Auto</span>
+                <span class="btn-pill green"></span>
+            </button>
+
+            <button id="btn-bar-quality" class="bar-action-btn" tabindex="0" title="Alternar HD/Fluido (Tecla Amarela)">
+                <span class="bar-icon">⚡</span>
+                <span class="bar-label" id="bar-label-quality">Fluido</span>
+                <span class="btn-pill yellow"></span>
+            </button>
+
+            <button id="btn-bar-mobile" class="bar-action-btn" tabindex="0" title="Controlar pelo Celular">
+                <span class="bar-icon">📱</span>
+                <span class="bar-label">Celular QR</span>
+            </button>
+
+            <button id="btn-bar-reconnect" class="bar-action-btn" tabindex="0" title="Reconectar ao DVR (Tecla Vermelha)">
+                <span class="bar-icon">🔄</span>
+                <span class="bar-label">Reconectar</span>
+                <span class="btn-pill red"></span>
+            </button>
+
+            <button id="btn-bar-help" class="bar-action-btn" tabindex="0" title="Ajuda e Atalhos">
+                <span class="bar-icon">❓</span>
+                <span class="bar-label">Ajuda</span>
+            </button>
+        </div>
+
+        <div class="bottom-menu-hint">
+            <span class="key-badge">▲ ▼ ◄ ►</span> Navegar &bull; 
+            <span class="key-badge">OK</span> Selecionar / Tela Cheia
+        </div>
+    </footer>
+
+    <!-- Menu Lateral Estilo Netflix (Aberto ao pressionar Voltar na grade) -->
+    <div id="netflix-drawer-wrap" class="netflix-drawer-wrap" style="display: none;">
+        <div id="drawer-backdrop" class="drawer-backdrop"></div>
+        <aside id="netflix-drawer" class="netflix-drawer">
+            <div class="drawer-header">
+                <div class="drawer-logo-badge">TV</div>
+                <div class="drawer-header-text">
+                    <h2>DVR TV</h2>
+                    <span>Menu de Navegação</span>
+                </div>
+            </div>
+
+            <nav class="drawer-nav">
+                <button class="drawer-item" id="drawer-item-cameras" tabindex="0">
+                    <span class="drawer-item-icon">📹</span>
+                    <div class="drawer-item-content">
+                        <span class="drawer-item-title">Câmeras</span>
+                        <span class="drawer-item-desc">Voltar para a grade de visualização</span>
+                    </div>
+                </button>
+
+                <button class="drawer-item" id="drawer-item-settings" tabindex="0">
+                    <span class="drawer-item-icon">⚙️</span>
+                    <div class="drawer-item-content">
+                        <span class="drawer-item-title">Configurações</span>
+                        <span class="drawer-item-desc">IP, credenciais, portas e preferências</span>
+                    </div>
+                </button>
+
+                <button class="drawer-item" id="drawer-item-filter" tabindex="0">
+                    <span class="drawer-item-icon">👁️</span>
+                    <div class="drawer-item-content">
+                        <span class="drawer-item-title">Câmeras sem Sinal</span>
+                        <span class="drawer-item-desc" id="drawer-filter-desc">Ocultar câmeras sem vídeo</span>
+                    </div>
+                    <span class="drawer-badge" id="drawer-filter-badge">Não</span>
+                </button>
+
+                <button class="drawer-item" id="drawer-item-grid" tabindex="0">
+                    <span class="drawer-item-icon">🔲</span>
+                    <div class="drawer-item-content">
+                        <span class="drawer-item-title">Modo de Grade</span>
+                        <span class="drawer-item-desc" id="drawer-grid-desc">Ajuste automático quadrado</span>
+                    </div>
+                    <span class="drawer-badge" id="drawer-grid-badge">Auto</span>
+                </button>
+
+                <button class="drawer-item" id="drawer-item-mobile" tabindex="0">
+                    <span class="drawer-item-icon">📱</span>
+                    <div class="drawer-item-content">
+                        <span class="drawer-item-title">Controlar pelo Celular</span>
+                        <span class="drawer-item-desc">Exibir QR Code e controle remoto web</span>
+                    </div>
+                </button>
+
+                <button class="drawer-item" id="drawer-item-help" tabindex="0">
+                    <span class="drawer-item-icon">❓</span>
+                    <div class="drawer-item-content">
+                        <span class="drawer-item-title">Ajuda & Atalhos</span>
+                        <span class="drawer-item-desc">Guia dos botões do controle remoto</span>
+                    </div>
+                </button>
+
+                <button class="drawer-item drawer-item-exit" id="drawer-item-exit" tabindex="0">
+                    <span class="drawer-item-icon">🚪</span>
+                    <div class="drawer-item-content">
+                        <span class="drawer-item-title">Sair do Aplicativo</span>
+                        <span class="drawer-item-desc">Encerrar a visualização das câmeras</span>
+                    </div>
+                </button>
+            </nav>
+
+            <div class="drawer-footer">
+                <span>Pressione <strong>VOLTAR</strong> ou <strong>►</strong> para retornar à grade</span>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Modal: Controlar pelo Celular com QR Code -->
+    <div id="qrcode-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-backdrop" id="qrcode-backdrop"></div>
+        <div class="modal-card modal-qr-card">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <span class="modal-icon">📱</span>
+                    <h2>Controlar pelo Celular</h2>
+                </div>
+                <button type="button" id="btn-close-qrcode" class="btn-close-modal" title="Fechar (Voltar)" tabindex="0">✕</button>
+            </div>
+
+            <div class="modal-body qrcode-body">
+                <div class="qr-presentation">
+                    <div id="qrcode-container" class="qrcode-container">
+                        <!-- Gerado via qrcode.min.js -->
+                    </div>
+                    <div class="qr-info-wrap">
+                        <h3>Abra a câmera do seu celular</h3>
+                        <p class="qr-hint">Aponte para o QR Code acima para abrir o controle remoto web instantaneamente.</p>
+                        
+                        <div class="qr-address-box">
+                            <span class="qr-address-label">Ou digite no navegador do celular:</span>
+                            <span id="qr-address-url" class="qr-address-url">http://192.168.100.74:8080/mobile</span>
+                        </div>
+
+                        <div class="qr-notice">
+                            <span class="notice-icon">ℹ️</span>
+                            <span>O celular e a TV devem estar conectados à <strong>mesma rede local / Wi-Fi</strong>.</span>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="fs-bottom-right">
-                <span class="fs-menu-item"><span class="fs-hint-key">OK / VOLTAR</span> Grade</span>
-                <span class="fs-menu-item"><span class="fs-hint-key">CH ▲ / ▼</span> Trocar Câmera</span>
-                <span class="fs-menu-item"><span class="btn-pill yellow"></span> <span>Alternar Fluido / HD</span></span>
+
+            <div class="modal-footer">
+                <button type="button" id="btn-dismiss-qrcode" class="modal-btn btn-primary" tabindex="0">
+                    <span>Voltar à Grade</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Modal de Configurações do DVR (Básico e Avançado) -->
-    <div id="settings-modal" class="settings-modal" style="display: none;">
-        <div class="settings-backdrop" id="settings-backdrop"></div>
-        <div class="settings-card">
-            <div class="settings-header">
-                <div class="settings-title-wrap">
-                    <span class="settings-icon">⚙️</span>
+    <!-- Modal: Ajuda e Atalhos do Controle Remoto -->
+    <div id="help-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-backdrop" id="help-backdrop"></div>
+        <div class="modal-card modal-help-card">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <span class="modal-icon">❓</span>
+                    <h2>Ajuda & Atalhos do Controle Remoto</h2>
+                </div>
+                <button type="button" id="btn-close-help" class="btn-close-modal" title="Fechar (Voltar)" tabindex="0">✕</button>
+            </div>
+
+            <div class="modal-body help-body">
+                <div class="help-grid">
+                    <div class="help-item">
+                        <span class="key-badge">▲ ▼ ◄ ►</span>
+                        <div>
+                            <strong>Navegação</strong>
+                            <p>Move o foco entre as câmeras na grade e pelos botões do menu.</p>
+                        </div>
+                    </div>
+
+                    <div class="help-item">
+                        <span class="key-badge">OK / Enter</span>
+                        <div>
+                            <strong>Selecionar / Tela Cheia</strong>
+                            <p>Abre a câmera focada em tela cheia ou ativa o botão selecionado.</p>
+                        </div>
+                    </div>
+
+                    <div class="help-item">
+                        <span class="key-badge">VOLTAR</span>
+                        <div>
+                            <strong>Retornar / Menu</strong>
+                            <p>Na grade: abre o Menu Netflix. Na tela cheia ou menus: volta à tela anterior.</p>
+                        </div>
+                    </div>
+
+                    <div class="help-item">
+                        <span class="btn-pill yellow"></span>
+                        <div>
+                            <strong>Tecla Amarela (Y)</strong>
+                            <p>Alterna instantaneamente a resolução entre Fluido e HD 1080p.</p>
+                        </div>
+                    </div>
+
+                    <div class="help-item">
+                        <span class="btn-pill green"></span>
+                        <div>
+                            <strong>Tecla Verde (G)</strong>
+                            <p>Alterna o modo de grade (Auto, 1x1, 2x2, 3x3, 4x4, 5x5, 6x6).</p>
+                        </div>
+                    </div>
+
+                    <div class="help-item">
+                        <span class="btn-pill red"></span>
+                        <div>
+                            <strong>Tecla Vermelha (R)</strong>
+                            <p>Força a reconexão imediata com o DVR Hikvision.</p>
+                        </div>
+                    </div>
+
+                    <div class="help-item">
+                        <span class="btn-pill blue"></span>
+                        <div>
+                            <strong>Tecla Azul (B)</strong>
+                            <p>Abre o painel completo de Configurações do DVR.</p>
+                        </div>
+                    </div>
+
+                    <div class="help-item">
+                        <span class="key-badge">0 a 9</span>
+                        <div>
+                            <strong>Canal Direto</strong>
+                            <p>Abre diretamente a câmera correspondente ao número pressionado.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" id="btn-dismiss-help" class="modal-btn btn-primary" tabindex="0">
+                    <span>Entendi</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Configurações do DVR (Básico, Preferências e Avançado) -->
+    <div id="settings-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-backdrop" id="settings-backdrop"></div>
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <span class="modal-icon">⚙️</span>
                     <h2>Configurações do DVR</h2>
                 </div>
                 <button type="button" id="btn-close-modal" class="btn-close-modal" title="Fechar (Voltar)" tabindex="0">✕</button>
             </div>
 
-            <div class="settings-body">
-                <!-- Configurações Básicas -->
+            <div class="modal-body">
+                <!-- Configurações de Conexão -->
                 <div class="form-group">
                     <label for="cfg-ip">Endereço IP do DVR</label>
                     <input type="text" id="cfg-ip" class="form-input" placeholder="192.168.100.2" autocomplete="off" spellcheck="false" tabindex="0">
@@ -102,11 +345,37 @@
                     </div>
                 </div>
 
-                <!-- Configurações Avançadas (Portas) -->
+                <!-- Preferências de Exibição e Grade -->
+                <div class="form-row">
+                    <div class="form-group flex-1">
+                        <label for="cfg-show-offline">Mostrar Câmeras Sem Sinal</label>
+                        <select id="cfg-show-offline" class="form-input form-select" tabindex="0">
+                            <option value="true">Sim (Mostrar todas as posições)</option>
+                            <option value="false">Não (Ocultar câmeras sem vídeo)</option>
+                        </select>
+                        <span class="input-hint">Quando "Não", recalcula a grade apenas com câmeras ativas</span>
+                    </div>
+
+                    <div class="form-group flex-1">
+                        <label for="cfg-grid-mode">Modo de Grade</label>
+                        <select id="cfg-grid-mode" class="form-input form-select" tabindex="0">
+                            <option value="auto">Automático (Quadrada ideal)</option>
+                            <option value="1x1">1x1 (1 Câmera)</option>
+                            <option value="2x2">2x2 (4 Câmeras)</option>
+                            <option value="3x3">3x3 (9 Câmeras)</option>
+                            <option value="4x4">4x4 (16 Câmeras)</option>
+                            <option value="5x5">5x5 (25 Câmeras)</option>
+                            <option value="6x6">6x6 (36 Câmeras)</option>
+                        </select>
+                        <span class="input-hint">Formato da grade de exibição</span>
+                    </div>
+                </div>
+
+                <!-- Configurações Avançadas (Portas e Servidor Sync) -->
                 <div class="advanced-section">
                     <button type="button" id="btn-toggle-advanced" class="btn-toggle-advanced" tabindex="0">
                         <span id="advanced-arrow" class="advanced-arrow">▶</span>
-                        <span>Configurações Avançadas (Portas)</span>
+                        <span>Configurações Avançadas (Portas e Sincronização)</span>
                     </button>
 
                     <div id="advanced-fields" class="advanced-fields" style="display: none;">
@@ -114,19 +383,25 @@
                             <div class="form-group flex-1">
                                 <label for="cfg-http-port">Porta HTTP / Web</label>
                                 <input type="number" id="cfg-http-port" class="form-input" placeholder="80" min="1" max="65535" tabindex="0">
-                                <span class="input-hint">Padrão: 80 (utilizada para API ISAPI e fotos)</span>
+                                <span class="input-hint">Padrão: 80 (API ISAPI e fotos)</span>
                             </div>
                             <div class="form-group flex-1">
                                 <label for="cfg-rtsp-port">Porta RTSP (Vídeo)</label>
                                 <input type="number" id="cfg-rtsp-port" class="form-input" placeholder="554" min="1" max="65535" tabindex="0">
-                                <span class="input-hint">Padrão: 554 (transmissão de vídeo ao vivo)</span>
+                                <span class="input-hint">Padrão: 554 (transmissão de vídeo)</span>
                             </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cfg-server-url">Endereço do Servidor Sync / Mobile</label>
+                            <input type="text" id="cfg-server-url" class="form-input" placeholder="192.168.100.74:8080" autocomplete="off" spellcheck="false" tabindex="0">
+                            <span class="input-hint">Endereço IP e porta do PC que roda o servidor de controle e QR Code</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="settings-footer">
+            <div class="modal-footer">
                 <button type="button" id="btn-save-settings" class="modal-btn btn-primary" tabindex="0">
                     <span>💾 Salvar e Reconectar</span>
                 </button>
@@ -140,43 +415,12 @@
         </div>
     </div>
 
-    <!-- Rodapé com Legenda dos Botões do Controle Remoto Samsung -->
-    <footer class="remote-legend-footer">
-        <div class="legend-item">
-            <span class="key-badge">▲ ▼ ◄ ►</span>
-            <span>Navegar</span>
-        </div>
-        <div class="legend-item">
-            <span class="key-badge">OK</span>
-            <span>Tela Cheia / Selecionar</span>
-        </div>
-        <div class="legend-item">
-            <span class="btn-pill red"></span>
-            <span>Reconectar</span>
-        </div>
-        <div class="legend-item">
-            <span class="btn-pill green"></span>
-            <span>Mudar Grade</span>
-        </div>
-        <div class="legend-item">
-            <span class="btn-pill yellow"></span>
-            <span>HD / Fluido</span>
-        </div>
-        <div class="legend-item">
-            <span class="btn-pill blue"></span>
-            <span>⚙️ Configurações</span>
-        </div>
-        <div class="legend-item">
-            <span class="key-badge">0-9</span>
-            <span>Canal Direto</span>
-        </div>
-    </footer>
-
     <!-- Toast de Notificação -->
     <div id="toast-notification" class="toast-notification"></div>
 
     <!-- Scripts da Aplicação -->
     <script src="js/sha256.js"></script>
+    <script src="js/qrcode.min.js"></script>
     <script src="js/dvr-api.js"></script>
     <script src="js/avplayer.js"></script>
     <script src="js/remote-keys.js"></script>
