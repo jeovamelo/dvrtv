@@ -1184,6 +1184,179 @@ html, body {
     text-align: center;
 }
 
+/* ==========================================================================\n+   DVR TV - CAMADA VISUAL APROVADA\n+   Primeiro acesso sem câmeras, trilho lateral compacto e sem menu inferior.\n+   ========================================================================== */
+.app-logo-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #08bce9;
+    box-shadow: none;
+}
+
+.brand-lens-mark {
+    position: relative;
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: 3px solid #e8fbff;
+    border-radius: 50%;
+}
+
+.brand-lens-mark:after {
+    content: '';
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    left: 6px;
+    top: 6px;
+    border-radius: 50%;
+    background: #f0444b;
+}
+
+.brand-lens-mark:before {
+    content: '';
+    position: absolute;
+    width: 7px;
+    height: 13px;
+    right: -4px;
+    top: 2px;
+    border-right: 3px solid #e8fbff;
+    border-radius: 50%;
+}
+
+.onboarding-active .app-header,
+.onboarding-active .main-container,
+.onboarding-active .netflix-drawer-wrap,
+.onboarding-active .bottom-menu-bar {
+    visibility: hidden;
+}
+
+.onboarding-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 64px 8vw;
+    background: radial-gradient(circle at 50% 38%, rgba(20, 56, 66, .34), transparent 52%), #071118;
+    color: #f8fafc;
+}
+
+.onboarding-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: #b8f4ff;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: .04em;
+}
+
+.onboarding-brand .brand-lens-mark { width: 30px; height: 30px; border-width: 3px; }
+.onboarding-brand .brand-lens-mark:after { left: 8px; top: 8px; }
+.onboarding-brand .brand-lens-mark:before { top: 4px; }
+.onboarding-screen h2 { font-size: clamp(32px, 3vw, 54px); letter-spacing: -.025em; font-weight: 750; }
+.onboarding-screen > p { font-size: clamp(20px, 1.6vw, 30px); color: #cbd5e1; margin-bottom: 22px; }
+
+.onboarding-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(360px, 520px));
+    gap: 22px;
+}
+
+.onboarding-option {
+    min-height: 260px;
+    padding: 32px 28px;
+    border: 1px solid rgba(226, 232, 240, .58);
+    border-radius: 16px;
+    background: rgba(20, 30, 38, .76);
+    color: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    outline: none;
+    transition: border-color .18s ease, background .18s ease, transform .18s ease;
+}
+
+.onboarding-option.is-focused,
+.onboarding-option:focus {
+    border-color: #22d3ee;
+    background: rgba(20, 75, 87, .72);
+    box-shadow: 0 0 0 2px rgba(34, 211, 238, .18);
+    transform: translateY(-2px);
+}
+
+.onboarding-option-icon { font-size: 58px; line-height: 1; color: #f8fafc; }
+.onboarding-option-title { font-size: 24px; font-weight: 750; }
+.onboarding-option-desc { font-size: 18px; color: #cbd5e1; }
+
+/* O rodapé antigo fica fora da composição; as ações vivem no trilho lateral. */
+.bottom-menu-bar { display: none !important; }
+
+.netflix-drawer-wrap {
+    display: flex !important;
+    width: 78px;
+    height: calc(100vh - 56px);
+    top: 56px;
+    z-index: 40;
+    pointer-events: none;
+}
+
+.netflix-drawer-wrap .drawer-backdrop { display: none; }
+.netflix-drawer {
+    width: 78px;
+    max-width: none;
+    height: 100%;
+    padding: 18px 10px;
+    background: rgba(8, 19, 27, .76);
+    border-right: 1px solid rgba(125, 211, 252, .18);
+    box-shadow: 8px 0 28px rgba(0, 0, 0, .26);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    pointer-events: auto;
+    animation: none;
+}
+
+.drawer-header, .drawer-footer, .drawer-item-content, .drawer-badge { display: none !important; }
+.drawer-nav { gap: 12px; overflow: visible; }
+.drawer-item {
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    gap: 0;
+}
+.drawer-item-icon { font-size: 25px; filter: grayscale(1) brightness(1.8); }
+.drawer-item:focus, .drawer-item.focused {
+    width: 224px;
+    justify-content: flex-start;
+    padding-left: 16px;
+    border-color: #22d3ee !important;
+    background: rgba(21, 83, 96, .84) !important;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, .24) !important;
+    transform: none;
+}
+.drawer-item:focus .drawer-item-content, .drawer-item.focused .drawer-item-content { display: flex !important; margin-left: 14px; }
+.drawer-item-title { font-size: 17px; }
+.drawer-item-desc { display: none; }
+.drawer-item-exit { margin-top: auto; background: transparent; border-top: 0; }
+
+.main-container { padding-left: 78px; }
+.app-header { padding-left: 102px; }
+
 /* ==========================================================================
    MODAIS (QR CODE, AJUDA E CONFIGURAÇÕES)
    ========================================================================== */
@@ -1788,4 +1961,197 @@ html, body {
     border: none !important;
     box-shadow: none !important;
     pointer-events: none !important;
+}
+
+/* ==========================================================================
+   LOGO OFICIAL DVR TV E BANNERS DE FEEDBACK
+   ========================================================================== */
+.app-logo-badge {
+    width: 38px !important;
+    height: 38px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.app-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+    display: block;
+}
+
+.drawer-logo-badge {
+    width: 48px !important;
+    height: 48px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.drawer-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 10px;
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+    display: block;
+}
+
+.onboarding-logo-img {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+/* Banner de Status e Erros no Modal de Configurações */
+.cfg-status-banner {
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cfg-status-banner.error {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.6);
+    color: #fca5a5;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+}
+
+.cfg-status-banner.loading {
+    background: rgba(14, 165, 233, 0.2);
+    border: 1px solid rgba(56, 189, 248, 0.6);
+    color: #bae6fd;
+    box-shadow: 0 0 12px rgba(14, 165, 233, 0.2);
+}
+
+.cfg-status-banner.success {
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.6);
+    color: #86efac;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+
+/* Tela de Boas-vindas para TV sem DVR configurado */
+.camera-grid.unconfigured-grid {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: radial-gradient(circle at center, #0d1b2a 0%, #050b14 100%) !important;
+}
+
+.unconfigured-welcome-card {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    backdrop-filter: blur(16px);
+    border-radius: 20px;
+    padding: 36px 44px;
+    text-align: center;
+    max-width: 680px;
+    width: 90%;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+.welcome-logo-img {
+    width: 90px;
+    height: 90px;
+    border-radius: 18px;
+    object-fit: cover;
+    margin: 0 auto 16px auto;
+    display: block;
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+}
+
+.unconfigured-welcome-card h2 {
+    font-size: 26px;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+}
+
+.welcome-subtitle {
+    font-size: 15px;
+    color: #94a3b8;
+    margin: 0 0 28px 0;
+    line-height: 1.4;
+}
+
+.welcome-options-row {
+    display: flex;
+    gap: 18px;
+    justify-content: center;
+}
+
+.welcome-option-card {
+    flex: 1;
+    background: #1e293b;
+    border: 2px solid transparent;
+    border-radius: 14px;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+    text-align: center;
+}
+
+.welcome-option-card:focus,
+.welcome-option-card.focused {
+    border-color: #00f0ff;
+    box-shadow: 0 0 16px rgba(0, 240, 255, 0.5);
+    transform: scale(1.03);
+    background: #16243b;
+}
+
+.welcome-card-icon {
+    font-size: 32px;
+}
+
+.welcome-card-info h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0 0 4px 0;
+}
+
+.welcome-card-info span {
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.3;
+    display: block;
+}
+
+.welcome-card-badge {
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.6);
+    color: #10b981;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-top: 4px;
 }

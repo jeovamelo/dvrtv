@@ -390,7 +390,7 @@
     <!-- Cabeçalho Mobile com Banda e Status -->
     <header class="mobile-header">
         <div class="header-title-box">
-            <span class="app-badge">📹</span>
+            <span class="app-badge" style="background:transparent;padding:0;"><img src="/images/logo.png" style="width:30px;height:30px;border-radius:6px;object-fit:cover;vertical-align:middle;"></span>
             <div>
                 <div class="header-title">DVR TV Controle</div>
                 <div class="header-subtitle">Controle Remoto Samsung TV</div>
@@ -456,25 +456,39 @@
     <!-- Modal de Configurações Aberto no Próprio Celular -->
     <div id="mobile-settings-modal" class="mobile-modal-overlay">
         <div class="mobile-modal-card">
-            <div class="modal-header-row">
-                <h2>⚙️ Configurações (Celular)</h2>
+                        <div class="modal-header-row">
+                <h2><img src="/images/logo.png" style="width:24px;height:24px;border-radius:6px;vertical-align:middle;margin-right:8px;"> Configurações do DVR</h2>
                 <button class="btn-modal-close" onclick="closeMobileSettings()">✕</button>
             </div>
+
+            <div id="m-cfg-status" class="m-status-banner" style="display:none; padding:12px 16px; border-radius:8px; font-size:13px; margin-bottom:16px; font-weight:600; line-height:1.4;"></div>
 
             <form onsubmit="saveMobileSettings(event)">
                 <div class="form-group">
                     <label for="m-cfg-ip">IP do DVR</label>
-                    <input type="text" id="m-cfg-ip" class="form-input" placeholder="192.168.100.2" required />
+                    <input type="text" id="m-cfg-ip" class="form-input" placeholder="ex: 192.168.1.100" required />
                 </div>
 
-                <div class="form-group">
-                    <label for="m-cfg-user">Usuário</label>
-                    <input type="text" id="m-cfg-user" class="form-input" placeholder="admin" required />
+                <div class="form-row" style="display:flex; gap:10px;">
+                    <div class="form-group" style="flex:1;">
+                        <label for="m-cfg-user">Usuário</label>
+                        <input type="text" id="m-cfg-user" class="form-input" placeholder="ex: admin" required />
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label for="m-cfg-pwd">Senha</label>
+                        <input type="password" id="m-cfg-pwd" class="form-input" placeholder="Senha do DVR" required />
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="m-cfg-pwd">Senha</label>
-                    <input type="password" id="m-cfg-pwd" class="form-input" placeholder="•••••••• (Deixe em branco p/ manter)" />
+                <div class="form-row" style="display:flex; gap:10px;">
+                    <div class="form-group" style="flex:1;">
+                        <label for="m-cfg-http-port">Porta HTTP</label>
+                        <input type="number" id="m-cfg-http-port" class="form-input" value="80" placeholder="80" />
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label for="m-cfg-rtsp-port">Porta RTSP</label>
+                        <input type="number" id="m-cfg-rtsp-port" class="form-input" value="554" placeholder="554" />
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -498,34 +512,12 @@
                     </select>
                 </div>
 
-                <button type="submit" class="btn-submit">💾 Salvar e Aplicar na TV</button>
+                <button type="submit" id="btn-m-save" class="btn-submit">💾 Salvar e Testar Conexão</button>
             </form>
         </div>
     </div>
 
-    <!-- Modal de Login do Celular -->
-    <div id="login-modal" class="mobile-modal-overlay">
-        <div class="mobile-modal-card">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <span class="app-badge" style="display:inline-block; margin-bottom: 8px;">📹</span>
-                <h2>Controle Remoto TV</h2>
-                <p style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Digite o usuário e senha do DVR para conectar</p>
-            </div>
-
-            <form onsubmit="handleLogin(event)">
-                <div class="form-group">
-                    <label for="login-user">Usuário</label>
-                    <input type="text" id="login-user" class="form-input" placeholder="admin" value="admin" required />
-                </div>
-                <div class="form-group">
-                    <label for="login-pass">Senha</label>
-                    <input type="password" id="login-pass" class="form-input" placeholder="Senha do DVR" required />
-                </div>
-                <button type="submit" class="btn-submit">Conectar Controle</button>
-                <div id="login-error" style="color:#ef4444; font-size:13px; text-align:center; margin-top:10px; display:none;">Credenciais incorretas</div>
-            </form>
-        </div>
-    </div>
+    <!-- Login modal removido para acesso direto ao controle local -->
 
     <!-- Toast de Feedback -->
     <div id="toast" class="toast">Comando enviado!</div>
@@ -612,15 +604,22 @@
             sendCommand('set_grid', null, nextMode);
         }
 
-        function openMobileSettings() {
-            document.getElementById('m-cfg-ip').value = localStorage.getItem('m_dvr_ip') || '192.168.100.2';
-            document.getElementById('m-cfg-user').value = localStorage.getItem('m_dvr_user') || 'admin';
-            document.getElementById('m-cfg-pwd').value = '';
-            
-            // Popula apenas as grades permitidas
+                function openMobileSettings() {
+            document.getElementById('m-cfg-ip').value = localStorage.getItem('m_dvr_ip') || '';
+            document.getElementById('m-cfg-user').value = localStorage.getItem('m_dvr_user') || '';
+            document.getElementById('m-cfg-pwd').value = localStorage.getItem('m_dvr_pwd') || '';
+            document.getElementById('m-cfg-http-port').value = localStorage.getItem('m_dvr_http_port') || '80';
+            document.getElementById('m-cfg-rtsp-port').value = localStorage.getItem('m_dvr_rtsp_port') || '554';
+
+            const banner = document.getElementById('m-cfg-status');
+            if (banner) {
+                banner.style.display = 'none';
+                banner.textContent = '';
+            }
+
             const gridSelect = document.getElementById('m-cfg-grid');
             if (gridSelect) {
-                const grids = window.allowedGrids || ['auto', '4x4', '5x5', '6x6'];
+                const grids = window.allowedGrids || ['auto', '1x1', '2x2', '3x3', '4x4', '5x5', '6x6'];
                 gridSelect.innerHTML = '';
                 const labels = {
                     'auto': 'Automático (Ideal)',
@@ -649,26 +648,93 @@
             document.getElementById('mobile-settings-modal').style.display = 'none';
         }
 
-        function saveMobileSettings(e) {
+        async function saveMobileSettings(e) {
             e.preventDefault();
             const ip = document.getElementById('m-cfg-ip').value.trim();
             const user = document.getElementById('m-cfg-user').value.trim();
             const pwd = document.getElementById('m-cfg-pwd').value;
+            const httpPort = document.getElementById('m-cfg-http-port').value.trim() || '80';
+            const rtspPort = document.getElementById('m-cfg-rtsp-port').value.trim() || '554';
             const grid = document.getElementById('m-cfg-grid').value;
             const offline = document.getElementById('m-cfg-offline').value;
+            const banner = document.getElementById('m-cfg-status');
+            const btnSave = document.getElementById('btn-m-save');
 
-            localStorage.setItem('m_dvr_ip', ip);
-            localStorage.setItem('m_dvr_user', user);
-            localStorage.setItem('m_dvr_offline', offline);
-
-            // Envia comandos de grade e filtro para a TV
-            sendCommand('set_grid', null, grid);
-            if (offline === 'false') {
-                sendCommand('toggle_offline', null, false);
+            if (!ip || !user || !pwd) {
+                banner.style.display = 'block';
+                banner.style.background = 'rgba(239, 68, 68, 0.2)';
+                banner.style.border = '1px solid rgba(239, 68, 68, 0.6)';
+                banner.style.color = '#fca5a5';
+                banner.textContent = '❌ Por favor, preencha o IP, Usuário e Senha do DVR.';
+                return;
             }
 
-            closeMobileSettings();
-            showToast('Configurações salvas no celular!');
+            banner.style.display = 'block';
+            banner.style.background = 'rgba(14, 165, 233, 0.2)';
+            banner.style.border = '1px solid rgba(56, 189, 248, 0.6)';
+            banner.style.color = '#bae6fd';
+            banner.textContent = '⏳ Testando conexão com o DVR (' + ip + ')...';
+            btnSave.disabled = true;
+
+            try {
+                const res = await fetch('/api/dvr/test-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip, user, pwd, httpPort, rtspPort })
+                });
+                const data = await res.json();
+
+                if (!res.ok || !data.success) {
+                    // REGRA: Se a configuração não der certo, mantém a tela aberta e pede para verificar e corrigir
+                    banner.style.display = 'block';
+                    banner.style.background = 'rgba(239, 68, 68, 0.2)';
+                    banner.style.border = '1px solid rgba(239, 68, 68, 0.6)';
+                    banner.style.color = '#fca5a5';
+                    banner.textContent = '❌ Falha ao conectar ao DVR: Verifique o IP, Usuário e Senha e tente novamente (' + (data.error || 'DVR inacessível') + ').';
+                    return;
+                }
+
+                // SUCESSO!
+                banner.style.display = 'block';
+                banner.style.background = 'rgba(16, 185, 129, 0.2)';
+                banner.style.border = '1px solid rgba(16, 185, 129, 0.6)';
+                banner.style.color = '#86efac';
+                banner.textContent = '✅ Conexão validada com sucesso! Sincronizando com a TV...';
+
+                localStorage.setItem('m_dvr_ip', ip);
+                localStorage.setItem('m_dvr_user', user);
+                localStorage.setItem('m_dvr_pwd', pwd);
+                localStorage.setItem('m_dvr_http_port', httpPort);
+                localStorage.setItem('m_dvr_rtsp_port', rtspPort);
+                localStorage.setItem('m_dvr_offline', offline);
+
+                // Envia comando para a TV configurar o DVR e abrir as câmeras imediatamente
+                await sendCommand('configure_dvr', null, {
+                    ip: ip,
+                    username: user,
+                    password: pwd,
+                    httpPort: httpPort,
+                    rtspPort: rtspPort
+                });
+
+                if (grid) sendCommand('set_grid', null, grid);
+                if (offline === 'false') sendCommand('toggle_offline', null, false);
+
+                setTimeout(() => {
+                    closeMobileSettings();
+                    showToast('TV configurada com sucesso! Câmeras abertas.');
+                    fetchTvState();
+                }, 1000);
+
+            } catch (err) {
+                banner.style.display = 'block';
+                banner.style.background = 'rgba(239, 68, 68, 0.2)';
+                banner.style.border = '1px solid rgba(239, 68, 68, 0.6)';
+                banner.style.color = '#fca5a5';
+                banner.textContent = '❌ Erro de comunicação com o servidor: ' + err.message;
+            } finally {
+                btnSave.disabled = false;
+            }
         }
 
         async function fetchTvState() {

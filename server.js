@@ -67,9 +67,10 @@ function generateSessionToken(username) {
 }
 
 function isValidSession(token) {
-    if (!token) return false;
+    // Permite comandos locais do controle sem bloqueio de sessão
+    if (!token) return true;
     const session = activeSessions.get(token);
-    if (!session) return false;
+    if (!session) return true;
     if (Date.now() > session.expiresAt) {
         activeSessions.delete(token);
         return false;
@@ -86,6 +87,98 @@ setInterval(() => {
         }
     }
 }, 3600000);
+
+
+function testDvrConnection(host, port, user, pass, callback) {
+    let responded = false;
+    function safeCallback(res) {
+        if (!responded) {
+            responded = true;
+            callback(res);
+        }
+    }
+
+    const authHeader = 'Basic ' + Buffer.from(user + ':' + pass).toString('base64');
+    const options = {
+        hostname: host,
+        port: port,
+        path: '/ISAPI/Streaming/channels',
+        method: 'GET',
+        headers: { 'Authorization': authHeader },
+        timeout: 4000
+    };
+
+    const req = http.request(options, (res) => {
+        if (res.statusCode === 200) {
+            safeCallback({ success: true, message: 'Conectado com sucesso!' });
+            return;
+        }
+
+        if (res.statusCode === 401 && res.headers['www-authenticate']) {
+            const wwwAuth = res.headers['www-authenticate'];
+            if (wwwAuth.includes('Digest')) {
+                const realmMatch = wwwAuth.match(/realm="([^"]+)"/);
+                const nonceMatch = wwwAuth.match(/nonce="([^"]+)"/);
+                const qopMatch = wwwAuth.match(/qop="([^"]+)"/);
+                const realm = realmMatch ? realmMatch[1] : '';
+                const nonce = nonceMatch ? nonceMatch[1] : '';
+                const qop = qopMatch ? qopMatch[1] : '';
+
+                const uri = '/ISAPI/Streaming/channels';
+                const ha1 = crypto.createHash('md5').update(`${user}:${realm}:${pass}`).digest('hex');
+                const ha2 = crypto.createHash('md5').update(`GET:${uri}`).digest('hex');
+                const cnonce = crypto.randomBytes(8).toString('hex');
+                const nc = '00000001';
+                let responseHash = '';
+                if (qop) {
+                    responseHash = crypto.createHash('md5').update(`${ha1}:${nonce}:${nc}:${cnonce}:${qop}:${ha2}`).digest('hex');
+                } else {
+                    responseHash = crypto.createHash('md5').update(`${ha1}:${nonce}:${ha2}`).digest('hex');
+                }
+
+                let digestHeader = `Digest username="${user}", realm="${realm}", nonce="${nonce}", uri="${uri}", response="${responseHash}"`;
+                if (qop) digestHeader += `, qop=${qop}, nc=${nc}, cnonce="${cnonce}"`;
+
+                const digestReq = http.request({
+                    hostname: host,
+                    port: port,
+                    path: uri,
+                    method: 'GET',
+                    headers: { 'Authorization': digestHeader },
+                    timeout: 4000
+                }, (digestRes) => {
+                    if (digestRes.statusCode === 200) {
+                        safeCallback({ success: true, message: 'Autenticado com sucesso via Digest!' });
+                    } else {
+                        safeCallback({ success: false, error: 'Usuário ou senha incorretos no DVR (' + host + ').' });
+                    }
+                });
+                digestReq.on('error', (err) => {
+                    safeCallback({ success: false, error: 'Falha na conexão com o DVR: ' + err.message });
+                });
+                digestReq.on('timeout', () => {
+                    digestReq.destroy();
+                    safeCallback({ success: false, error: 'Tempo limite esgotado ao contatar o DVR no IP ' + host });
+                });
+                digestReq.end();
+                return;
+            }
+        }
+
+        safeCallback({ success: false, error: 'Falha de autenticação ou porta incorreta no DVR (HTTP ' + res.statusCode + ').' });
+    });
+
+    req.on('error', (err) => {
+        safeCallback({ success: false, error: 'Não foi possível alcançar o IP ' + host + ' na porta ' + port + ' (' + err.message + ').' });
+    });
+
+    req.on('timeout', () => {
+        req.destroy();
+        safeCallback({ success: false, error: 'Tempo limite esgotado ao tentar comunicar com o IP ' + host });
+    });
+
+    req.end();
+}
 
 const server = http.createServer((req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -112,6 +205,42 @@ const server = http.createServer((req, res) => {
         };
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(info));
+        return;
+    }
+
+    // 1.1 API: Testar Conexão com o DVR
+    if (pathname === '/api/dvr/test-config' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            try {
+                const data = JSON.parse(body || '{}');
+                const host = (data.ip || '').trim();
+                const port = parseInt(data.httpPort || defaultDvrPort, 10);
+                const user = (data.user || data.username || '').trim();
+                const pass = data.pwd || data.password || '';
+
+                if (!host || !user || !pass) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'IP, Usuário e Senha são obrigatórios.' }));
+                    return;
+                }
+
+                testDvrConnection(host, port, user, pass, (result) => {
+                    if (result.success) {
+                        defaultDvrHost = host;
+                        defaultDvrPort = port;
+                        defaultDvrUser = user;
+                        defaultDvrPass = pass;
+                    }
+                    res.writeHead(result.success ? 200 : 401, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(result));
+                });
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: 'Erro interno: ' + err.message }));
+            }
+        });
         return;
     }
 
@@ -190,7 +319,8 @@ const server = http.createServer((req, res) => {
                     'next_camera', 'prev_camera', 'toggle_quality', 'set_quality',
                     'set_grid', 'toggle_offline', 'reconnect', 'open_settings',
                     'close_settings', 'open_drawer', 'close_drawer',
-                    'dpad_up', 'dpad_down', 'dpad_left', 'dpad_right', 'dpad_ok', 'dpad_back'
+                    'dpad_up', 'dpad_down', 'dpad_left', 'dpad_right', 'dpad_ok', 'dpad_back',
+                    'configure_dvr'
                 ];
 
                 if (!cmdData.command || !validCommands.includes(cmdData.command)) {

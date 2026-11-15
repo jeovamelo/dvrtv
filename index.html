@@ -10,7 +10,7 @@
     <!-- Cabeçalho Superior Translúcido Estilo Netflix (Auto-ocultável) -->
     <header class="app-header overlay-header visible" id="app-header">
         <div class="header-left">
-            <div class="app-logo-badge" title="DVR TV">📹</div>
+            <div class="app-logo-badge" title="DVR TV" aria-label="DVR TV"><img src="images/logo.png" class="app-logo-img" alt="DVR TV"></div>
             <h1 id="dvr-title" class="dvr-title">DVR01Casa • iDS-7216HQHI-M1/XT</h1>
             <div class="connection-status-pill">
                 <span id="status-dot" class="status-dot connecting"></span>
@@ -26,6 +26,25 @@
             </div>
         </div>
     </header>
+
+    <!-- Primeiro acesso: não renderiza câmeras por trás desta etapa -->
+    <section id="onboarding-screen" class="onboarding-screen" aria-label="Primeiro acesso">
+        <div class="onboarding-brand"><img src="images/logo.png" class="onboarding-logo-img" alt="DVR TV"><span>DVR TV</span></div>
+        <h2>Bem-vindo ao DVR TV</h2>
+        <p>Como deseja configurar sua TV?</p>
+        <div class="onboarding-options">
+            <button id="onboarding-mobile" class="onboarding-option is-focused" type="button" tabindex="0">
+                <span class="onboarding-option-icon">⌁</span>
+                <span class="onboarding-option-title">Configurar com celular</span>
+                <span class="onboarding-option-desc">QR Code ou endereço no navegador</span>
+            </button>
+            <button id="onboarding-tv" class="onboarding-option" type="button" tabindex="0">
+                <span class="onboarding-option-icon">▣</span>
+                <span class="onboarding-option-title">Configurar nesta TV</span>
+                <span class="onboarding-option-desc">Usar controle remoto</span>
+            </button>
+        </div>
+    </section>
 
     <!-- Área Principal de Exibição (Ocupa a tela inteira em 16:9, sob os menus translúcidos) -->
     <main class="main-container" id="main-container">
@@ -107,7 +126,7 @@
         <div id="drawer-backdrop" class="drawer-backdrop"></div>
         <aside id="netflix-drawer" class="netflix-drawer">
             <div class="drawer-header">
-                <div class="drawer-logo-badge">TV</div>
+                <div class="drawer-logo-badge"><img src="images/logo.png" class="drawer-logo-img" alt="DVR TV"></div>
                 <div class="drawer-header-text">
                     <h2>DVR TV</h2>
                     <span>Menu de Navegação</span>
@@ -332,21 +351,22 @@
             </div>
 
             <div class="modal-body">
+                <div id="cfg-status-banner" class="cfg-status-banner" style="display: none;"></div>
                 <div class="form-group">
                     <label for="cfg-ip">Endereço IP do DVR</label>
-                    <input type="text" id="cfg-ip" class="form-input" placeholder="192.168.100.2" autocomplete="off" spellcheck="false" tabindex="0">
+                    <input type="text" id="cfg-ip" class="form-input" placeholder="ex: 192.168.1.100" autocomplete="off" spellcheck="false" tabindex="0">
                     <span class="input-hint">Endereço IP local do gravador na sua rede</span>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group flex-1">
                         <label for="cfg-user">Usuário</label>
-                        <input type="text" id="cfg-user" class="form-input" placeholder="admin" autocomplete="off" spellcheck="false" tabindex="0">
+                        <input type="text" id="cfg-user" class="form-input" placeholder="ex: admin" autocomplete="off" spellcheck="false" tabindex="0">
                     </div>
                     <div class="form-group flex-1">
                         <label for="cfg-pwd">Senha</label>
                         <div class="password-wrapper">
-                            <input type="password" id="cfg-pwd" class="form-input" placeholder="•••••••• (Salva internamente)" autocomplete="off" tabindex="0">
+                            <input type="password" id="cfg-pwd" class="form-input" placeholder="Senha do DVR" autocomplete="off" tabindex="0">
                             <span class="password-lock-icon" title="Senha protegida">🔒</span>
                         </div>
                         <span class="input-hint">Digite apenas se desejar alterá-la</span>

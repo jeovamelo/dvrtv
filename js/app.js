@@ -12,13 +12,20 @@
 class DvrTvApp {
     constructor() {
         var DvrClass = window.DvrApiClient || (typeof DvrApiClient !== 'undefined' ? DvrApiClient : null);
+        var savedIp = localStorage.getItem('dvr_ip') || '';
+        var savedUser = localStorage.getItem('dvr_user') || '';
+        var savedPwd = localStorage.getItem('dvr_pwd') || localStorage.getItem('dvr_pass') || '';
+        var savedHttp = parseInt(localStorage.getItem('dvr_http_port') || '80', 10);
+        var savedRtsp = parseInt(localStorage.getItem('dvr_rtsp_port') || '554', 10);
+
         this.dvr = new DvrClass({
-            ip: localStorage.getItem('dvr_ip') || '192.168.100.2',
-            httpPort: parseInt(localStorage.getItem('dvr_http_port') || '80', 10),
-            rtspPort: parseInt(localStorage.getItem('dvr_rtsp_port') || '554', 10),
-            username: localStorage.getItem('dvr_user') || 'admin',
-            password: localStorage.getItem('dvr_pwd') || localStorage.getItem('dvr_pass') || 'jr130182'
+            ip: savedIp,
+            httpPort: savedHttp,
+            rtspPort: savedRtsp,
+            username: savedUser,
+            password: savedPwd
         });
+        this.drawerTimer = null;
 
         this.channels = [];
         this.currentLayout = '4x4';
@@ -32,6 +39,7 @@ class DvrTvApp {
         this.isQrModalOpen = false;
         this.isHelpModalOpen = false;
         this.isLicenseModalOpen = false;
+        this.isOnboarding = localStorage.getItem('dvr_onboarding_complete') !== 'true';
         this.openedFromZone = "grid";
 
         // Zonas de Foco: 'grid', 'bottom-bar', 'drawer', 'modal', 'qrcode', 'help', 'fullscreen'
@@ -67,6 +75,12 @@ class DvrTvApp {
         this.setupRemote();
         this.updateBarLabels();
         this.wakeChrome();
+        this.updateOnboardingVisibility();
+        if (this.isOnboarding) {
+            this.currentFocusZone = 'onboarding';
+            var firstOnboardingButton = document.getElementById('onboarding-mobile');
+            if (firstOnboardingButton) firstOnboardingButton.focus();
+        }
 
         // Inicializar player de vídeo para a TV
         var container = document.getElementById('fullscreen-player-container');
@@ -236,6 +250,15 @@ class DvrTvApp {
         // Eventos do mouse / movimento acordam o cabeçalho e rodapé
         window.addEventListener('mousemove', function() {
             self.wakeChrome();
+        });
+
+        var onboardingMobile = document.getElementById('onboarding-mobile');
+        var onboardingTv = document.getElementById('onboarding-tv');
+        if (onboardingMobile) onboardingMobile.addEventListener('click', function() {
+            self.openQrModal(true);
+        });
+        if (onboardingTv) onboardingTv.addEventListener('click', function() {
+            self.openSettingsModal(true);
         });
 
         // Botões do Menu Inferior
@@ -588,7 +611,58 @@ class DvrTvApp {
     /* ==========================================================================
        CONEXÃO COM O DVR
        ========================================================================== */
+
+    renderUnconfiguredScreen() {
+        var container = document.getElementById('camera-grid');
+        if (!container) return;
+
+        container.className = 'camera-grid unconfigured-grid';
+        container.innerHTML = 
+            '<div class="unconfigured-welcome-card">' +
+                '<img src="images/logo.png" class="welcome-logo-img" alt="DVR TV">' +
+                '<h2>Bem-vindo ao DVR TV</h2>' +
+                '<p class="welcome-subtitle">Para começar a visualizar suas câmeras, configure a conexão com o seu DVR.</p>' +
+                '<div class="welcome-options-row">' +
+                    '<button type="button" id="btn-welcome-mobile" class="welcome-option-card focused" tabindex="0">' +
+                        '<div class="welcome-card-icon">📱</div>' +
+                        '<div class="welcome-card-info">' +
+                            '<h3>Configurar pelo Celular</h3>' +
+                            '<span>Recomendado: Aponte a câmera e configure em segundos</span>' +
+                        '</div>' +
+                        '<span class="welcome-card-badge">Rápido</span>' +
+                    '</button>' +
+                    '<button type="button" id="btn-welcome-tv" class="welcome-option-card" tabindex="0">' +
+                        '<div class="welcome-card-icon">⚙️</div>' +
+                        '<div class="welcome-card-info">' +
+                            '<h3>Configurar pelo Controle</h3>' +
+                            '<span>Digite o IP, usuário e senha na TV</span>' +
+                        '</div>' +
+                    '</button>' +
+                '</div>' +
+            '</div>';
+
+        var self = this;
+        var btnMob = document.getElementById('btn-welcome-mobile');
+        var btnTv = document.getElementById('btn-welcome-tv');
+
+        if (btnMob) {
+            btnMob.addEventListener('click', function() { self.openQrModal(); });
+        }
+        if (btnTv) {
+            btnTv.addEventListener('click', function() { self.openSettingsModal(); });
+        }
+
+        this.currentFocusZone = 'unconfigured';
+        if (btnMob) btnMob.focus();
+    }
+
     async connectDvr() {
+        if (!this.dvr.ip || !this.dvr.username) {
+            console.log('[App] DVR não configurado. Exibindo tela de boas-vindas.');
+            this.setConnectionStatus('waiting', 'Aguardando Configuração');
+            this.renderUnconfiguredScreen();
+            return;
+        }
         this.setConnectionStatus('connecting', 'Conectando...');
         try {
             await this.dvr.login();
@@ -622,6 +696,22 @@ class DvrTvApp {
     /* ==========================================================================
        MENU NETFLIX (DRAWER LATERAL)
        ========================================================================== */
+    updateOnboardingVisibility() {
+        var screen = document.getElementById('onboarding-screen');
+        var body = document.body;
+        if (screen) screen.style.display = this.isOnboarding ? 'flex' : 'none';
+        if (body) body.classList.toggle('onboarding-active', this.isOnboarding);
+    }
+
+    completeOnboarding() {
+        this.isOnboarding = false;
+        localStorage.setItem('dvr_onboarding_complete', 'true');
+        this.updateOnboardingVisibility();
+        this.currentFocusZone = 'grid';
+        this.updateCardFocus();
+        this.wakeChrome();
+    }
+
     openDrawer() {
         if (this.isFullScreen) {
             this.closeFullScreen();
@@ -633,6 +723,7 @@ class DvrTvApp {
         var wrap = document.getElementById('netflix-drawer-wrap');
         if (wrap) {
             wrap.style.display = 'flex';
+            wrap.classList.add('is-open');
         }
 
         this.updateBarLabels();
@@ -642,27 +733,45 @@ class DvrTvApp {
     }
 
     closeDrawer() {
+        this.clearDrawerTimer();
         this.isDrawerOpen = false;
         var wrap = document.getElementById('netflix-drawer-wrap');
-        if (wrap) wrap.style.display = 'none';
+        if (wrap) {
+            wrap.style.display = 'flex';
+            wrap.classList.remove('is-open');
+        }
 
-        this.currentFocusZone = 'grid';
-        this.updateCardFocus();
+        this.currentFocusZone = (this.channels && this.channels.length > 0) ? 'grid' : 'unconfigured';
+        if (this.currentFocusZone === 'grid') {
+            this.updateCardFocus();
+        }
         this.wakeChrome();
         this.syncStateToServer();
     }
 
     getDrawerItems() {
-        return [
-            document.getElementById('drawer-item-cameras'),
-            document.getElementById('drawer-item-settings'),
-            document.getElementById('drawer-item-filter'),
-            document.getElementById('drawer-item-grid'),
-            document.getElementById('drawer-item-quality'),
-            document.getElementById('drawer-item-mobile'),
-            document.getElementById('drawer-item-help'),
-            document.getElementById('drawer-item-exit')
-        ].filter(function(el) { return el !== null; });
+        var elements = document.querySelectorAll('#netflix-drawer .drawer-nav .drawer-item');
+        return Array.prototype.slice.call(elements).filter(function(el) {
+            return el && window.getComputedStyle(el).display !== 'none';
+        });
+    }
+
+    resetDrawerTimer() {
+        this.clearDrawerTimer();
+        var self = this;
+        this.drawerTimer = setTimeout(function() {
+            if (self.isDrawerOpen) {
+                console.log('[Drawer] Auto-fechamento após 10 segundos');
+                self.closeDrawer();
+            }
+        }, 10000);
+    }
+
+    clearDrawerTimer() {
+        if (this.drawerTimer) {
+            clearTimeout(this.drawerTimer);
+            this.drawerTimer = null;
+        }
     }
 
     updateDrawerFocus() {
@@ -715,7 +824,8 @@ class DvrTvApp {
     /* ==========================================================================
        MODAL QR CODE
        ========================================================================== */
-    openQrModal() {
+    openQrModal(fromOnboarding) {
+        this.openedFromOnboarding = !!fromOnboarding;
         this.isQrModalOpen = true;
         this.currentFocusZone = 'qrcode';
 
@@ -756,8 +866,13 @@ class DvrTvApp {
         var modal = document.getElementById('qrcode-modal');
         if (modal) modal.style.display = 'none';
 
-        this.currentFocusZone = 'grid';
-        this.updateCardFocus();
+        if (this.openedFromOnboarding) {
+            this.openedFromOnboarding = false;
+            this.currentFocusZone = 'onboarding';
+        } else {
+            this.currentFocusZone = 'grid';
+            this.updateCardFocus();
+        }
         this.wakeChrome();
     }
 
@@ -788,7 +903,8 @@ class DvrTvApp {
     /* ==========================================================================
        MODAL CONFIGURAÇÕES
        ========================================================================== */
-    openSettingsModal() {
+    openSettingsModal(fromOnboarding) {
+        this.openedFromOnboarding = !!fromOnboarding;
         this.isModalOpen = true;
         this.currentFocusZone = 'modal';
 
@@ -805,11 +921,17 @@ class DvrTvApp {
         var rtspPortInput = document.getElementById('cfg-rtsp-port');
         var serverUrlInput = document.getElementById('cfg-server-url');
 
-        if (ipInput) ipInput.value = localStorage.getItem('dvr_ip') || this.dvr.ip || '192.168.100.2';
-        if (userInput) userInput.value = localStorage.getItem('dvr_user') || this.dvr.username || 'admin';
+        var banner = document.getElementById('cfg-status-banner');
+        if (banner) {
+            banner.style.display = 'none';
+            banner.textContent = '';
+        }
+
+        if (ipInput) ipInput.value = localStorage.getItem('dvr_ip') || this.dvr.ip || '';
+        if (userInput) userInput.value = localStorage.getItem('dvr_user') || this.dvr.username || '';
         if (pwdInput) {
-            pwdInput.value = '';
-            pwdInput.placeholder = '•••••••• (Salva internamente)';
+            pwdInput.value = localStorage.getItem('dvr_pwd') || this.dvr.password || '';
+            pwdInput.placeholder = 'Senha do DVR';
         }
         if (showOfflineSelect) showOfflineSelect.value = this.showOfflineCameras ? 'true' : 'false';
         if (qualitySelect) qualitySelect.value = this.streamQuality || 'sub';
@@ -851,7 +973,9 @@ class DvrTvApp {
         var modal = document.getElementById('settings-modal');
         if (modal) modal.style.display = 'none';
 
-        if (this.openedFromZone === 'drawer') {
+        if (this.openedFromOnboarding) {
+            this.currentFocusZone = 'onboarding';
+        } else if (this.openedFromZone === 'drawer') {
             this.openDrawer();
         } else {
             this.currentFocusZone = 'grid';
@@ -913,72 +1037,116 @@ class DvrTvApp {
         }
     }
 
-    saveSettings() {
+        async saveSettings() {
         var ipInput = document.getElementById('cfg-ip');
         var userInput = document.getElementById('cfg-user');
         var pwdInput = document.getElementById('cfg-pwd');
+        var qualitySelect = document.getElementById('cfg-quality');
         var showOfflineSelect = document.getElementById('cfg-show-offline');
         var gridModeSelect = document.getElementById('cfg-grid-mode');
         var httpPortInput = document.getElementById('cfg-http-port');
         var rtspPortInput = document.getElementById('cfg-rtsp-port');
         var serverUrlInput = document.getElementById('cfg-server-url');
+        var banner = document.getElementById('cfg-status-banner');
+        var saveBtn = document.getElementById('btn-save-settings');
 
         var newIp = ipInput ? ipInput.value.trim() : '';
         var newUser = userInput ? userInput.value.trim() : '';
         var newPwd = pwdInput ? pwdInput.value : '';
+        var newHttpPort = httpPortInput ? parseInt(httpPortInput.value || '80', 10) : 80;
+        var newRtspPort = rtspPortInput ? parseInt(rtspPortInput.value || '554', 10) : 554;
 
-        if (!newIp || !newUser) {
-            this.showToast('IP e Usuário são obrigatórios!');
+        if (!newIp || !newUser || !newPwd) {
+            if (banner) {
+                banner.className = 'cfg-status-banner error';
+                banner.style.display = 'flex';
+                banner.textContent = '❌ Por favor, preencha o IP, Usuário e Senha do DVR antes de salvar.';
+            }
+            if (ipInput && !newIp) ipInput.focus();
+            else if (userInput && !newUser) userInput.focus();
+            else if (pwdInput && !newPwd) pwdInput.focus();
             return;
         }
 
-        localStorage.setItem('dvr_ip', newIp);
-        localStorage.setItem('dvr_user', newUser);
+        if (banner) {
+            banner.className = 'cfg-status-banner loading';
+            banner.style.display = 'flex';
+            banner.textContent = '⏳ Testando conexão com o DVR (' + newIp + ')...';
+        }
+        if (saveBtn) saveBtn.disabled = true;
 
-        if (newPwd && newPwd.length > 0) {
+        var DvrClass = window.DvrApiClient || (typeof DvrApiClient !== 'undefined' ? DvrApiClient : null);
+        var testClient = new DvrClass({
+            ip: newIp,
+            httpPort: newHttpPort,
+            rtspPort: newRtspPort,
+            username: newUser,
+            password: newPwd
+        });
+
+        try {
+            await testClient.login();
+            var channels = await testClient.getChannels();
+            if (!channels || channels.length === 0) {
+                throw new Error('Nenhum canal retornado pelo DVR.');
+            }
+
+            // SUCESSO! Salva credenciais validadas no localStorage
+            localStorage.setItem('dvr_ip', newIp);
+            localStorage.setItem('dvr_user', newUser);
+            localStorage.setItem('dvr_pwd', newPwd);
             localStorage.setItem('dvr_pass', newPwd);
-            this.dvr.password = newPwd;
-        }
+            localStorage.setItem('dvr_http_port', newHttpPort.toString());
+            localStorage.setItem('dvr_rtsp_port', newRtspPort.toString());
 
-        if (qualitySelect) {
-            this.streamQuality = qualitySelect.value;
-            localStorage.setItem('dvr_stream_quality', this.streamQuality);
-            this.updateBarLabels();
-        }
-        if (showOfflineSelect) {
-            this.showOfflineCameras = (showOfflineSelect.value === 'true');
-            localStorage.setItem('dvr_show_offline', this.showOfflineCameras ? 'true' : 'false');
-        }
+            if (qualitySelect) {
+                this.streamQuality = qualitySelect.value;
+                localStorage.setItem('dvr_stream_quality', this.streamQuality);
+                this.updateBarLabels();
+            }
+            if (showOfflineSelect) {
+                this.showOfflineCameras = (showOfflineSelect.value === 'true');
+                localStorage.setItem('dvr_show_offline', this.showOfflineCameras ? 'true' : 'false');
+            }
+            if (gridModeSelect) {
+                this.gridMode = gridModeSelect.value;
+                localStorage.setItem('dvr_grid_mode', this.gridMode);
+                this.updateBarLabels();
+            }
+            if (serverUrlInput && serverUrlInput.value.trim()) {
+                this.serverUrl = serverUrlInput.value.trim();
+                localStorage.setItem('dvr_server_url', this.serverUrl);
+            }
 
-        if (gridModeSelect) {
-            this.gridMode = gridModeSelect.value;
-            localStorage.setItem('dvr_grid_mode', this.gridMode);
+            this.dvr = testClient;
+            this.channels = channels;
+
+            if (banner) {
+                banner.className = 'cfg-status-banner success';
+                banner.textContent = '✅ Conexão bem-sucedida! Carregando câmeras...';
+            }
+
+            var self = this;
+            setTimeout(function() {
+                self.closeSettingsModal();
+                self.completeOnboarding();
+                self.renderGrid();
+                self.startGridRefresh();
+                self.showToast('DVR conectado: ' + channels.length + ' canais ativos');
+            }, 600);
+
+        } catch (err) {
+            console.error('[Config Test Failed]', err);
+            // REGRA: Se a configuração não der certo, mantém a tela aberta e pede para verificar e corrigir
+            if (banner) {
+                banner.className = 'cfg-status-banner error';
+                banner.style.display = 'flex';
+                banner.textContent = '❌ Falha ao conectar: Verifique se o IP, Usuário e Senha estão corretos e tente novamente (' + (err.message || 'DVR inacessível') + ').';
+            }
+            if (pwdInput) pwdInput.focus();
+        } finally {
+            if (saveBtn) saveBtn.disabled = false;
         }
-
-        if (httpPortInput) {
-            var httpPort = parseInt(httpPortInput.value, 10) || 80;
-            localStorage.setItem('dvr_http_port', httpPort);
-            this.dvr.httpPort = httpPort;
-        }
-
-        if (rtspPortInput) {
-            var rtspPort = parseInt(rtspPortInput.value, 10) || 554;
-            localStorage.setItem('dvr_rtsp_port', rtspPort);
-            this.dvr.rtspPort = rtspPort;
-        }
-
-        if (serverUrlInput) {
-            this.serverUrl = serverUrlInput.value.trim();
-            localStorage.setItem('dvr_server_url', this.serverUrl);
-        }
-
-        this.dvr.ip = newIp;
-        this.dvr.username = newUser;
-
-        this.closeSettingsModal();
-        this.renderGrid();
-        this.connectDvr();
-        this.showToast('Configurações salvas! Reconectando...');
     }
 
     restoreDefaultSettings() {
@@ -990,12 +1158,11 @@ class DvrTvApp {
         var httpPortInput = document.getElementById('cfg-http-port');
         var rtspPortInput = document.getElementById('cfg-rtsp-port');
 
-        if (ipInput) ipInput.value = '192.168.100.2';
-        if (userInput) userInput.value = 'admin';
-        if (pwdInput) {
-            pwdInput.value = 'jr130182';
-            pwdInput.placeholder = '••••••••';
-        }
+        if (ipInput) ipInput.value = '';
+        if (userInput) userInput.value = '';
+        if (pwdInput) pwdInput.value = '';
+        var banner = document.getElementById('cfg-status-banner');
+        if (banner) banner.style.display = 'none';
         if (showOfflineSelect) showOfflineSelect.value = 'true';
         if (gridModeSelect) gridModeSelect.value = 'auto';
         if (httpPortInput) httpPortInput.value = '80';
@@ -1118,6 +1285,22 @@ class DvrTvApp {
     handleNavigation(direction) {
         this.wakeChrome();
 
+        if (this.currentFocusZone === 'onboarding' || this.isOnboarding) {
+            var onboardingButtons = [
+                document.getElementById('onboarding-mobile'),
+                document.getElementById('onboarding-tv')
+            ].filter(function(el) { return el !== null; });
+            var onboardingIndex = document.activeElement === onboardingButtons[1] ? 1 : 0;
+            if (direction === 'left' || direction === 'right') {
+                onboardingIndex = onboardingIndex === 0 ? 1 : 0;
+                onboardingButtons[onboardingIndex].focus();
+                for (var ob = 0; ob < onboardingButtons.length; ob++) {
+                    onboardingButtons[ob].classList.toggle('is-focused', ob === onboardingIndex);
+                }
+            }
+            return;
+        }
+
                 if (this.currentFocusZone === 'license' && this.isLicenseModalOpen) {
             var licBtns = [
                 document.getElementById('btn-refresh-license'),
@@ -1156,9 +1339,11 @@ class DvrTvApp {
             if (direction === 'up') {
                 this.drawerFocusIndex = (this.drawerFocusIndex - 1 + dLen) % dLen;
                 this.updateDrawerFocus();
+                this.resetDrawerTimer();
             } else if (direction === 'down') {
                 this.drawerFocusIndex = (this.drawerFocusIndex + 1) % dLen;
                 this.updateDrawerFocus();
+                this.resetDrawerTimer();
             } else if (direction === 'right') {
                 this.closeDrawer();
             }
@@ -1270,22 +1455,6 @@ class DvrTvApp {
                         this.renderGrid();
                         this.showToast('Página ' + (this.currentPage + 1) + ' de ' + totalPages, 1000);
                         return;
-                    } else {
-                        // Descer da última fileira passa o foco para a barra inferior
-                        this.currentFocusZone = 'bottom-bar';
-                        this.bottomBarFocusIndex = 0;
-                        var barBtns = [
-                            document.getElementById('btn-bar-menu'),
-                            document.getElementById('btn-bar-settings'),
-                            document.getElementById('btn-bar-grid'),
-                            document.getElementById('btn-bar-quality'),
-                            document.getElementById('btn-bar-mobile'),
-                            document.getElementById('btn-bar-reconnect'),
-                            document.getElementById('btn-bar-help')
-                        ].filter(function(el) { return el !== null; });
-                        this.updateBottomBarFocus(barBtns, 0);
-                        this.updateCardFocus();
-                        return;
                     }
                     break;
 
@@ -1325,6 +1494,11 @@ class DvrTvApp {
        ========================================================================== */
     handleEnter() {
         this.wakeChrome();
+
+        if (this.currentFocusZone === 'onboarding' || this.isOnboarding) {
+            if (document.activeElement && document.activeElement.click) document.activeElement.click();
+            return;
+        }
 
         if (this.currentFocusZone === 'modal' && this.isModalOpen) {
             var el = this.modalFocusableElements[this.modalFocusIndex];
@@ -1393,6 +1567,8 @@ class DvrTvApp {
        ========================================================================== */
     handleBack() {
         var self = this;
+
+        if (this.isOnboarding) return;
 
         if (this.isFullScreen) {
             this.closeFullScreen();
@@ -1683,6 +1859,40 @@ class DvrTvApp {
                 }
                 break;
 
+            case 'configure_dvr':
+                if (val && typeof val === 'object') {
+                    var ip = val.ip ? val.ip.trim() : '';
+                    var user = val.username ? val.username.trim() : (val.user ? val.user.trim() : '');
+                    var pwd = val.password ? val.password : (val.pwd ? val.pwd : '');
+                    var hPort = val.httpPort ? parseInt(val.httpPort, 10) : 80;
+                    var rPort = val.rtspPort ? parseInt(val.rtspPort, 10) : 554;
+
+                    if (ip) {
+                        this.dvr.ip = ip;
+                        localStorage.setItem('dvr_ip', ip);
+                    }
+                    if (user) {
+                        this.dvr.username = user;
+                        localStorage.setItem('dvr_user', user);
+                    }
+                    if (pwd) {
+                        this.dvr.password = pwd;
+                        localStorage.setItem('dvr_pwd', pwd);
+                        localStorage.setItem('dvr_pass', pwd);
+                    }
+                    this.dvr.httpPort = hPort;
+                    localStorage.setItem('dvr_http_port', hPort.toString());
+                    this.dvr.rtspPort = rPort;
+                    localStorage.setItem('dvr_rtsp_port', rPort.toString());
+
+                    this.closeQrModal();
+                    this.closeSettingsModal();
+                    this.closeDrawer();
+                    this.completeOnboarding();
+                    this.showToast('Configurações recebidas do celular! Conectando...');
+                    this.connectDvr();
+                }
+                break;
             case 'set_grid':
                 if (val) {
                     this.gridMode = val;
