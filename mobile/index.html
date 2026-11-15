@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DVR TV - Controle Mobile</title>
+    <title>DVR TV - Controle Remoto</title>
     <style>
         * {
             box-sizing: border-box;
@@ -16,14 +16,14 @@
             background-color: #0b0f17;
             color: #f1f5f9;
             min-height: 100vh;
-            padding-bottom: 70px;
+            padding-bottom: 30px;
         }
 
-        /* Top Header */
+        /* Cabeçalho Mobile com Banda e Status */
         header.mobile-header {
             background: linear-gradient(180deg, #131c2e 0%, #0b0f17 100%);
             border-bottom: 1px solid #1e293b;
-            padding: 12px 16px;
+            padding: 14px 18px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -37,96 +37,78 @@
             gap: 10px;
         }
         .app-badge {
-            background: #2563eb;
+            background: #0284c7;
             color: #fff;
-            font-weight: 800;
-            font-size: 13px;
-            padding: 4px 8px;
-            border-radius: 6px;
-            letter-spacing: 0.5px;
+            font-size: 16px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 10px rgba(2, 132, 199, 0.4);
         }
         .header-title {
             font-size: 16px;
-            font-weight: 700;
+            font-weight: 800;
             color: #ffffff;
         }
         .header-subtitle {
             font-size: 11px;
             color: #94a3b8;
         }
-        .sync-status {
+        .header-status-pill {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            padding: 5px 12px;
+            border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
-            background: rgba(16, 185, 129, 0.15);
-            color: #10b981;
-            padding: 4px 10px;
-            border-radius: 20px;
-            border: 1px solid rgba(16, 185, 129, 0.3);
         }
-        .sync-status.disconnected {
-            background: rgba(239, 68, 68, 0.15);
-            color: #ef4444;
-            border-color: rgba(239, 68, 68, 0.3);
-        }
-        .sync-dot {
+        .status-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background-color: currentColor;
+            background-color: #10b981;
+            box-shadow: 0 0 6px #10b981;
         }
-
-        /* Navigation Tabs */
-        .nav-tabs {
-            display: flex;
-            background: #111827;
-            border-bottom: 1px solid #1f2937;
+        .status-dot.offline {
+            background-color: #ef4444;
+            box-shadow: 0 0 6px #ef4444;
         }
-        .nav-tab {
-            flex: 1;
-            padding: 12px;
-            text-align: center;
-            font-size: 14px;
-            font-weight: 600;
-            color: #9ca3af;
-            background: none;
-            border: none;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.2s ease;
-        }
-        .nav-tab.active {
+        .bandwidth-tag {
             color: #38bdf8;
-            border-bottom-color: #38bdf8;
-            background: rgba(56, 189, 248, 0.05);
+            font-family: monospace;
+            font-weight: 700;
         }
 
-        /* Content Container */
-        .tab-content {
+        /* Container Principal */
+        .container {
             padding: 16px;
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
+            max-width: 480px;
+            margin: 0 auto;
         }
 
-        /* TV Status Banner */
+        /* Card de Status da TV */
         .tv-status-card {
             background: #131d2e;
             border: 1px solid #1e293b;
-            border-radius: 12px;
+            border-radius: 14px;
             padding: 14px 16px;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
         .tv-info-left h3 {
-            font-size: 14px;
+            font-size: 12px;
             color: #94a3b8;
+            text-transform: uppercase;
             margin-bottom: 4px;
+            letter-spacing: 0.5px;
         }
         .tv-info-left .tv-view-name {
             font-size: 17px;
@@ -140,7 +122,7 @@
         .pill-badge {
             font-size: 11px;
             font-weight: 700;
-            padding: 3px 8px;
+            padding: 4px 8px;
             border-radius: 6px;
             text-transform: uppercase;
         }
@@ -160,20 +142,21 @@
             border: 1px solid rgba(168, 85, 247, 0.4);
         }
 
-        /* D-Pad Virtual Remote */
+        /* D-Pad Virtual */
         .dpad-section {
             background: #131c2e;
             border: 1px solid #1e293b;
-            border-radius: 16px;
+            border-radius: 18px;
             padding: 24px 16px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
         }
         .dpad-container {
-            width: 220px;
-            height: 220px;
+            width: 230px;
+            height: 230px;
             position: relative;
             margin: 10px auto;
         }
@@ -182,79 +165,79 @@
             background: #1e293b;
             color: #f8fafc;
             border: 2px solid #334155;
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 800;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.1s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
         }
         .dpad-btn:active {
-            background: #38bdf8;
-            color: #0b0f17;
-            transform: scale(0.95);
+            background: #0284c7;
+            color: #ffffff;
+            transform: scale(0.94);
         }
         .dpad-up {
             top: 0;
-            left: 70px;
+            left: 75px;
             width: 80px;
-            height: 70px;
+            height: 72px;
             border-radius: 14px 14px 4px 4px;
         }
         .dpad-down {
             bottom: 0;
-            left: 70px;
+            left: 75px;
             width: 80px;
-            height: 70px;
+            height: 72px;
             border-radius: 4px 4px 14px 14px;
         }
         .dpad-left {
-            top: 70px;
+            top: 75px;
             left: 0;
-            width: 70px;
+            width: 72px;
             height: 80px;
             border-radius: 14px 4px 4px 14px;
         }
         .dpad-right {
-            top: 70px;
+            top: 75px;
             right: 0;
-            width: 70px;
+            width: 72px;
             height: 80px;
             border-radius: 4px 14px 14px 4px;
         }
         .dpad-ok {
-            top: 70px;
-            left: 70px;
+            top: 75px;
+            left: 75px;
             width: 80px;
             height: 80px;
             border-radius: 50%;
             background: #0284c7;
             border: 3px solid #38bdf8;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 900;
-            box-shadow: 0 0 14px rgba(56, 189, 248, 0.4);
+            box-shadow: 0 0 16px rgba(56, 189, 248, 0.5);
         }
         .dpad-ok:active {
             background: #38bdf8;
-            color: #000;
+            color: #0b0f17;
+            transform: scale(0.92);
         }
 
-        /* Remote Actions Grid */
+        /* Botões de Ação Rápida */
         .remote-actions-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+            gap: 12px;
             width: 100%;
-            margin-top: 10px;
         }
         .action-btn {
             background: #1e293b;
             color: #f1f5f9;
             border: 1px solid #334155;
-            border-radius: 10px;
-            padding: 14px 12px;
+            border-radius: 12px;
+            padding: 15px 12px;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
@@ -263,10 +246,11 @@
             justify-content: center;
             gap: 8px;
             transition: all 0.15s ease;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
         }
         .action-btn:active {
+            transform: scale(0.96);
             background: #334155;
-            transform: scale(0.97);
         }
         .action-btn.btn-back {
             background: rgba(239, 68, 68, 0.15);
@@ -289,134 +273,72 @@
             color: #7dd3fc;
         }
 
-        /* Camera List / Gallery */
-        .cameras-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 12px;
-        }
-        .mobile-cam-card {
-            background: #131c2e;
-            border: 2px solid #1e293b;
-            border-radius: 10px;
-            overflow: hidden;
-            position: relative;
-            cursor: pointer;
-            transition: transform 0.15s ease, border-color 0.15s ease;
-        }
-        .mobile-cam-card.selected {
-            border-color: #38bdf8;
-            box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
-        }
-        .mobile-cam-card.offline {
-            opacity: 0.6;
-        }
-        .mobile-cam-thumb {
-            width: 100%;
-            aspect-ratio: 16/9;
-            object-fit: cover;
-            display: block;
-            background: #000;
-        }
-        .mobile-cam-details {
-            padding: 8px 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .mobile-cam-name {
-            font-size: 13px;
-            font-weight: 700;
-            color: #ffffff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .mobile-cam-status {
-            font-size: 10px;
-            font-weight: 700;
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
-        .mobile-cam-status.online {
-            background: #059669;
-            color: #fff;
-        }
-        .mobile-cam-status.offline {
-            background: #475569;
-            color: #cbd5e1;
-        }
-
-        /* Login Modal */
-        .login-overlay {
+        /* Modal de Configurações no Celular */
+        .mobile-modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(11, 15, 23, 0.95);
+            background: rgba(11, 15, 23, 0.92);
             backdrop-filter: blur(8px);
-            z-index: 999;
-            display: flex;
+            z-index: 500;
+            display: none;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 16px;
         }
-        .login-card {
+        .mobile-modal-card {
             background: #131c2e;
             border: 1px solid #1e293b;
             border-radius: 16px;
-            padding: 28px 24px;
+            padding: 24px 20px;
             width: 100%;
-            max-width: 360px;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+            max-width: 420px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7);
         }
-        .login-logo {
-            text-align: center;
+        .modal-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #1e293b;
         }
-        .login-logo-badge {
-            background: #2563eb;
-            color: #fff;
-            font-size: 20px;
-            font-weight: 900;
-            padding: 8px 18px;
-            border-radius: 10px;
-            display: inline-block;
-            margin-bottom: 8px;
-        }
-        .login-card h2 {
-            font-size: 20px;
+        .modal-header-row h2 {
+            font-size: 18px;
             font-weight: 700;
             color: #ffffff;
-            text-align: center;
         }
-        .login-card p {
-            font-size: 13px;
+        .btn-modal-close {
+            background: none;
+            border: none;
             color: #94a3b8;
-            text-align: center;
-            margin-top: 4px;
-            margin-bottom: 20px;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
         }
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
         .form-group label {
             display: block;
             font-size: 12px;
             font-weight: 600;
             color: #94a3b8;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
             text-transform: uppercase;
         }
         .form-input {
             width: 100%;
-            padding: 12px 14px;
+            padding: 11px 12px;
             background: #0b0f17;
             border: 1px solid #334155;
             border-radius: 8px;
             color: #f1f5f9;
-            font-size: 15px;
+            font-size: 14px;
             outline: none;
         }
         .form-input:focus {
@@ -425,26 +347,18 @@
         }
         .btn-submit {
             width: 100%;
-            padding: 14px;
+            padding: 13px;
             background: #0284c7;
             color: #ffffff;
             border: none;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
             cursor: pointer;
             margin-top: 10px;
-            transition: background 0.2s ease;
         }
         .btn-submit:active {
             background: #0369a1;
-        }
-        .login-error {
-            color: #ef4444;
-            font-size: 13px;
-            text-align: center;
-            margin-top: 12px;
-            display: none;
         }
 
         /* Toast feedback */
@@ -473,29 +387,23 @@
 </head>
 <body>
 
-    <!-- Cabeçalho Mobile -->
+    <!-- Cabeçalho Mobile com Banda e Status -->
     <header class="mobile-header">
         <div class="header-title-box">
-            <span class="app-badge">TV</span>
+            <span class="app-badge">📹</span>
             <div>
-                <div class="header-title">DVR TV Mobile</div>
-                <div class="header-subtitle">Controle Remoto & Câmeras</div>
+                <div class="header-title">DVR TV Controle</div>
+                <div class="header-subtitle">Controle Remoto Samsung TV</div>
             </div>
         </div>
-        <div id="sync-status" class="sync-status">
-            <span class="sync-dot"></span>
+        <div class="header-status-pill">
+            <span id="sync-dot" class="status-dot"></span>
             <span id="sync-label">Conectado</span>
+            <span id="sync-bandwidth" class="bandwidth-tag">• 0 KB/s</span>
         </div>
     </header>
 
-    <!-- Abas de Navegação -->
-    <div class="nav-tabs">
-        <button id="tab-btn-remote" class="nav-tab active" onclick="switchTab('remote')">Controle TV</button>
-        <button id="tab-btn-cams" class="nav-tab" onclick="switchTab('cams')">Câmeras (<span id="cams-count">0</span>)</button>
-    </div>
-
-    <!-- Aba 1: Controle Remoto TV -->
-    <div id="tab-remote" class="tab-content active">
+    <div class="container">
         <!-- Status Atual da TV -->
         <div class="tv-status-card">
             <div class="tv-info-left">
@@ -508,7 +416,7 @@
             </div>
         </div>
 
-        <!-- D-Pad Virtual -->
+        <!-- D-Pad Virtual Principal -->
         <div class="dpad-section">
             <div class="dpad-container">
                 <button class="dpad-btn dpad-up" onclick="sendCommand('dpad_up')">▲</button>
@@ -526,13 +434,13 @@
                 <button class="action-btn btn-quality" onclick="sendCommand('toggle_quality')">
                     <span>⚡ HD / Fluido</span>
                 </button>
-                <button class="action-btn btn-grid" onclick="cycleGridMode()">
+                <button class="action-btn btn-grid" onclick="cycleSquareGrid()">
                     <span>🔲 Mudar Grade</span>
                 </button>
                 <button class="action-btn" onclick="sendCommand('toggle_offline')">
-                    <span>👁️ Sem Sinal Sim/Não</span>
+                    <span>👁️ Sem Sinal</span>
                 </button>
-                <button class="action-btn btn-settings" onclick="sendCommand('open_settings')">
+                <button class="action-btn btn-settings" onclick="openMobileSettings()">
                     <span>⚙️ Configurações</span>
                 </button>
                 <button class="action-btn" onclick="sendCommand('reconnect')">
@@ -542,33 +450,76 @@
         </div>
     </div>
 
-    <!-- Aba 2: Lista de Câmeras -->
-    <div id="tab-cams" class="tab-content">
-        <div id="cameras-container" class="cameras-grid">
-            <!-- Gerado dinamicamente -->
+    <!-- Modal de Configurações Aberto no Próprio Celular -->
+    <div id="mobile-settings-modal" class="mobile-modal-overlay">
+        <div class="mobile-modal-card">
+            <div class="modal-header-row">
+                <h2>⚙️ Configurações (Celular)</h2>
+                <button class="btn-modal-close" onclick="closeMobileSettings()">✕</button>
+            </div>
+
+            <form onsubmit="saveMobileSettings(event)">
+                <div class="form-group">
+                    <label for="m-cfg-ip">IP do DVR</label>
+                    <input type="text" id="m-cfg-ip" class="form-input" placeholder="192.168.100.2" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="m-cfg-user">Usuário</label>
+                    <input type="text" id="m-cfg-user" class="form-input" placeholder="admin" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="m-cfg-pwd">Senha</label>
+                    <input type="password" id="m-cfg-pwd" class="form-input" placeholder="•••••••• (Deixe em branco p/ manter)" />
+                </div>
+
+                <div class="form-group">
+                    <label for="m-cfg-grid">Modo de Grade (Apenas Quadradas)</label>
+                    <select id="m-cfg-grid" class="form-input">
+                        <option value="auto">Automático (Quadrada ideal)</option>
+                        <option value="1x1">1x1 (1 Câmera)</option>
+                        <option value="2x2">2x2 (4 Câmeras)</option>
+                        <option value="3x3">3x3 (9 Câmeras)</option>
+                        <option value="4x4">4x4 (16 Câmeras)</option>
+                        <option value="5x5">5x5 (25 Câmeras)</option>
+                        <option value="6x6">6x6 (36 Câmeras)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="m-cfg-offline">Câmeras Sem Sinal</label>
+                    <select id="m-cfg-offline" class="form-input">
+                        <option value="true">Mostrar Todas as Câmeras</option>
+                        <option value="false">Ocultar Câmeras Sem Sinal</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn-submit">💾 Salvar e Aplicar na TV</button>
+            </form>
         </div>
     </div>
 
-    <!-- Modal de Login Seguro -->
-    <div id="login-modal" class="login-overlay">
-        <div class="login-card">
-            <div class="login-logo">
-                <div class="login-logo-badge">DVR TV</div>
-                <h2>Acesso ao Sistema</h2>
-                <p>Digite o usuário e senha do DVR para controlar o aplicativo pelo celular</p>
+    <!-- Modal de Login do Celular -->
+    <div id="login-modal" class="mobile-modal-overlay">
+        <div class="mobile-modal-card">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <span class="app-badge" style="display:inline-block; margin-bottom: 8px;">📹</span>
+                <h2>Controle Remoto TV</h2>
+                <p style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Digite o usuário e senha do DVR para conectar</p>
             </div>
 
-            <form id="login-form" onsubmit="handleLogin(event)">
+            <form onsubmit="handleLogin(event)">
                 <div class="form-group">
                     <label for="login-user">Usuário</label>
-                    <input type="text" id="login-user" class="form-input" placeholder="admin" value="admin" required autocomplete="off" />
+                    <input type="text" id="login-user" class="form-input" placeholder="admin" value="admin" required />
                 </div>
                 <div class="form-group">
                     <label for="login-pass">Senha</label>
-                    <input type="password" id="login-pass" class="form-input" placeholder="Digite a senha" required />
+                    <input type="password" id="login-pass" class="form-input" placeholder="Senha do DVR" required />
                 </div>
-                <button type="submit" class="btn-submit">Entrar no Controle</button>
-                <div id="login-error" class="login-error">Usuário ou senha incorretos</div>
+                <button type="submit" class="btn-submit">Conectar Controle</button>
+                <div id="login-error" style="color:#ef4444; font-size:13px; text-align:center; margin-top:10px; display:none;">Credenciais incorretas</div>
             </form>
         </div>
     </div>
@@ -578,9 +529,9 @@
 
     <script>
         let sessionToken = localStorage.getItem('mobile_session_token') || '';
-        let lastTvState = null;
         let pollTimer = null;
-        const gridModes = ['auto', '1x1', '2x2', '3x3', '4x4', '5x5', '6x6'];
+        // Permite ESTRITAMENTE grades quadradas
+        const squareGrids = ['auto', '1x1', '2x2', '3x3', '4x4', '5x5', '6x6'];
         let currentGridIdx = 0;
 
         function showToast(msg) {
@@ -588,19 +539,6 @@
             toast.textContent = msg;
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 2000);
-        }
-
-        function switchTab(tab) {
-            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-            if (tab === 'remote') {
-                document.getElementById('tab-btn-remote').classList.add('active');
-                document.getElementById('tab-remote').classList.add('active');
-            } else {
-                document.getElementById('tab-btn-cams').classList.add('active');
-                document.getElementById('tab-cams').classList.add('active');
-            }
         }
 
         async function handleLogin(e) {
@@ -622,14 +560,14 @@
                     sessionToken = data.token;
                     localStorage.setItem('mobile_session_token', sessionToken);
                     document.getElementById('login-modal').style.display = 'none';
-                    showToast('Autenticado com sucesso!');
+                    showToast('Controle conectado com sucesso!');
                     startStatePolling();
                 } else {
                     errEl.textContent = data.error || 'Credenciais inválidas';
                     errEl.style.display = 'block';
                 }
             } catch (err) {
-                errEl.textContent = 'Erro ao conectar ao servidor local';
+                errEl.textContent = 'Erro de conexão com o servidor local';
                 errEl.style.display = 'block';
             }
         }
@@ -657,16 +595,52 @@
                     return;
                 }
 
-                showToast('Comando enviado à TV');
+                showToast('Comando enviado');
             } catch (err) {
-                showToast('Falha ao comunicar com a TV');
+                showToast('Falha na comunicação');
             }
         }
 
-        function cycleGridMode() {
-            currentGridIdx = (currentGridIdx + 1) % gridModes.length;
-            const nextMode = gridModes[currentGridIdx];
+        function cycleSquareGrid() {
+            currentGridIdx = (currentGridIdx + 1) % squareGrids.length;
+            const nextMode = squareGrids[currentGridIdx];
             sendCommand('set_grid', null, nextMode);
+        }
+
+        function openMobileSettings() {
+            // Carrega valores atuais no modal do celular
+            document.getElementById('m-cfg-ip').value = localStorage.getItem('m_dvr_ip') || '192.168.100.2';
+            document.getElementById('m-cfg-user').value = localStorage.getItem('m_dvr_user') || 'admin';
+            document.getElementById('m-cfg-pwd').value = '';
+            document.getElementById('m-cfg-grid').value = squareGrids[currentGridIdx] || 'auto';
+            document.getElementById('m-cfg-offline').value = localStorage.getItem('m_dvr_offline') || 'true';
+            document.getElementById('mobile-settings-modal').style.display = 'flex';
+        }
+
+        function closeMobileSettings() {
+            document.getElementById('mobile-settings-modal').style.display = 'none';
+        }
+
+        function saveMobileSettings(e) {
+            e.preventDefault();
+            const ip = document.getElementById('m-cfg-ip').value.trim();
+            const user = document.getElementById('m-cfg-user').value.trim();
+            const pwd = document.getElementById('m-cfg-pwd').value;
+            const grid = document.getElementById('m-cfg-grid').value;
+            const offline = document.getElementById('m-cfg-offline').value;
+
+            localStorage.setItem('m_dvr_ip', ip);
+            localStorage.setItem('m_dvr_user', user);
+            localStorage.setItem('m_dvr_offline', offline);
+
+            // Envia comandos de grade e filtro para a TV
+            sendCommand('set_grid', null, grid);
+            if (offline === 'false') {
+                sendCommand('toggle_offline', null, false);
+            }
+
+            closeMobileSettings();
+            showToast('Configurações salvas no celular!');
         }
 
         async function fetchTvState() {
@@ -687,37 +661,36 @@
                 const data = await res.json();
                 if (data.success && data.state) {
                     updateUIWithTvState(data.state);
-                    setSyncStatus(true);
+                    setSyncStatus(true, data.state.bandwidth);
                 }
             } catch (err) {
-                setSyncStatus(false);
+                setSyncStatus(false, '0 KB/s');
             }
         }
 
-        function setSyncStatus(connected) {
-            const el = document.getElementById('sync-status');
+        function setSyncStatus(connected, bandwidth) {
+            const dot = document.getElementById('sync-dot');
             const label = document.getElementById('sync-label');
+            const bw = document.getElementById('sync-bandwidth');
+
             if (connected) {
-                el.className = 'sync-status';
-                label.textContent = 'TV Sincronizada';
+                dot.className = 'status-dot';
+                label.textContent = 'Conectado';
             } else {
-                el.className = 'sync-status disconnected';
+                dot.className = 'status-dot offline';
                 label.textContent = 'Desconectado';
             }
+            if (bw) bw.textContent = '• ' + (bandwidth || '0 KB/s');
         }
 
         function updateUIWithTvState(state) {
-            lastTvState = state;
-
-            // Visualização atual na TV
             const viewEl = document.getElementById('tv-current-view');
             if (state.currentView === 'fullscreen') {
-                viewEl.textContent = 'Tela Cheia: ' + (state.selectedCameraName || ('Câmera ' + state.selectedChannelId));
+                viewEl.textContent = 'Câmera Única: ' + (state.selectedCameraName || ('CH ' + state.selectedChannelId));
             } else {
                 viewEl.textContent = 'Grade (' + (state.gridMode || 'Auto').toUpperCase() + ')';
             }
 
-            // Badges
             const qEl = document.getElementById('badge-quality');
             if (state.quality === 'main') {
                 qEl.className = 'pill-badge pill-hd';
@@ -730,38 +703,8 @@
             const gEl = document.getElementById('badge-grid');
             gEl.textContent = (state.gridMode || 'Auto').toUpperCase();
 
-            // Câmeras
-            if (state.channels && state.channels.length > 0) {
-                document.getElementById('cams-count').textContent = state.channels.length;
-                renderCameras(state.channels, state.selectedChannelId);
-            }
-        }
-
-        function renderCameras(channels, selectedId) {
-            const container = document.getElementById('cameras-container');
-            container.innerHTML = '';
-
-            channels.forEach(ch => {
-                const card = document.createElement('div');
-                card.className = 'mobile-cam-card' + (ch.id === selectedId ? ' selected' : '') + (ch.isOnline ? '' : ' offline');
-                
-                const snapUrl = '/api/snapshot/' + ch.id + '/2?t=' + Date.now();
-                card.innerHTML = 
-                    '<img class="mobile-cam-thumb" src="' + snapUrl + '" alt="' + ch.name + '" loading="lazy" />' +
-                    '<div class="mobile-cam-details">' +
-                        '<div class="mobile-cam-name">CH ' + ch.id + ' • ' + ch.name + '</div>' +
-                        '<span class="mobile-cam-status ' + (ch.isOnline ? 'online' : 'offline') + '">' +
-                            (ch.isOnline ? 'AO VIVO' : 'SEM SINAL') +
-                        '</span>' +
-                    '</div>';
-
-                card.onclick = () => {
-                    sendCommand('select_camera', ch.id);
-                    sendCommand('open_fullscreen', ch.id);
-                };
-
-                container.appendChild(card);
-            });
+            const idx = squareGrids.indexOf(state.gridMode);
+            if (idx !== -1) currentGridIdx = idx;
         }
 
         function startStatePolling() {
@@ -770,7 +713,6 @@
             pollTimer = setInterval(fetchTvState, 1500);
         }
 
-        // Inicialização
         if (sessionToken) {
             document.getElementById('login-modal').style.display = 'none';
             startStatePolling();

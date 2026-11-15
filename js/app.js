@@ -1,12 +1,12 @@
 /**
  * DVR TV - Aplicação para Samsung Smart TV (Tizen 5.5+) e Navegadores
- * Usabilidade Total: Navegação 100% via Setas + OK, Menu Auto-Ocultável,
- * Menu Netflix no Botão Voltar, Filtro Sem Sinal, Grade Dinâmica Quadrada,
- * Tela Cheia Real e Sincronização Mobile com QR Code.
+ * Usabilidade Estilo Netflix: Navegação 100% via Setas e OK,
+ * Menus Translúcidos com Fade-Out Automático, 1x1 Proporcional 16:9,
+ * Monitor de Banda (KB/s), Botão Voltar Duplo para Sair e Sincronização Mobile.
  *
  * NOTA CRÍTICA DE COMPATIBILIDADE:
- * NUNCA utilizar operadores ES2020 optional chaining ou nullish coalescing neste arquivo para
- * garantir suporte pleno ao Chromium 69/76 do Tizen 5.5.
+ * NUNCA utilizar operadores ES2020 (optional chaining ou nullish coalescing)
+ * para garantir suporte pleno ao Chromium 69/76 do Tizen 5.5.
  */
 
 class DvrTvApp {
@@ -19,8 +19,11 @@ class DvrTvApp {
             username: localStorage.getItem('dvr_user') || 'admin',
             password: localStorage.getItem('dvr_pwd') || localStorage.getItem('dvr_pass') || 'jr130182'
         });
+
         this.channels = [];
         this.currentLayout = '4x4';
+        this.currentGridCols = 4;
+        this.currentGridCapacity = 16;
         this.focusedIndex = 0;
         this.fullScreenChannel = null;
         this.isFullScreen = false;
@@ -36,13 +39,14 @@ class DvrTvApp {
 
         // Preferências persistidas no localStorage
         this.showOfflineCameras = (localStorage.getItem('dvr_show_offline') !== 'false');
-        this.gridMode = localStorage.getItem('dvr_grid_mode') || 'auto';
+        this.gridMode = localStorage.getItem('dvr_grid_mode') || 'auto'; // 'auto', '1x1', '2x2', '3x3', '4x4', '5x5', '6x6'
         this.streamQuality = localStorage.getItem('dvr_stream_quality') || 'sub'; // 'sub' = Fluido, 'main' = HD
         this.serverUrl = localStorage.getItem('dvr_server_url') || '';
 
         this.gridRefreshTimer = null;
-        this.bottomBarTimer = null;
+        this.chromeHideTimer = null;
         this.syncPollTimer = null;
+        this.backPressTimer = null;
         this.qrCodeInstance = null;
 
         this.modalFocusableElements = [];
@@ -53,17 +57,28 @@ class DvrTvApp {
     }
 
     async init() {
-        console.log('[App] Inicializando DVR TV com Usabilidade Aprimorada...');
+        console.log('[App] Inicializando DVR TV Estilo Netflix...');
         this.startClock();
         this.setupDOM();
         this.setupRemote();
         this.updateBarLabels();
-        this.wakeBottomBar();
+        this.wakeChrome();
 
         // Inicializar player de vídeo para a TV
         var container = document.getElementById('fullscreen-player-container');
         var PlayerClass = window.TvStreamPlayer || (typeof TvStreamPlayer !== 'undefined' ? TvStreamPlayer : null);
-        this.player = new PlayerClass(container, this.dvr);
+        if (PlayerClass && container) {
+            this.player = new PlayerClass(container, this.dvr);
+        }
+
+        // Iniciar monitor de velocidade de banda (KB/s)
+        var self = this;
+        this.dvr.startBandwidthMonitor(function(formatted) {
+            var bwEl = document.getElementById('bandwidth-label');
+            if (bwEl) {
+                bwEl.textContent = '• ' + formatted;
+            }
+        });
 
         // Detectar URL do servidor de sync / mobile
         await this.detectServerInfo();
@@ -106,6 +121,41 @@ class DvrTvApp {
     }
 
     /* ==========================================================================
+       AUTO-FADE DO CABEÇALHO E RODAPÉ ESTILO NETFLIX (TRANSLÚCIDO)
+       ========================================================================== */
+    wakeChrome() {
+        var header = document.getElementById('app-header');
+        var bottomBar = document.getElementById('bottom-menu-bar');
+
+        // Em tela cheia dedicada, menus permanecem ocultos
+        if (this.isFullScreen) {
+            if (header) header.classList.remove('visible');
+            if (bottomBar) bottomBar.classList.remove('visible');
+            return;
+        }
+
+        if (header) header.classList.add('visible');
+        if (bottomBar) bottomBar.classList.add('visible');
+
+        if (this.chromeHideTimer) {
+            clearTimeout(this.chromeHideTimer);
+        }
+
+        // Se o foco estiver no menu inferior ou se houver modal/drawer aberto, não esmaece
+        if (this.currentFocusZone === 'bottom-bar' || this.isModalOpen || this.isDrawerOpen || this.isQrModalOpen || this.isHelpModalOpen) {
+            return;
+        }
+
+        var self = this;
+        this.chromeHideTimer = setTimeout(function() {
+            if (self.currentFocusZone !== 'bottom-bar' && !self.isModalOpen && !self.isDrawerOpen && !self.isQrModalOpen && !self.isHelpModalOpen) {
+                if (header) header.classList.remove('visible');
+                if (bottomBar) bottomBar.classList.remove('visible');
+            }
+        }, 4000);
+    }
+
+    /* ==========================================================================
        DETECTAR SERVIDOR DE SINCRONIZAÇÃO / QR CODE
        ========================================================================== */
     async detectServerInfo() {
@@ -130,50 +180,16 @@ class DvrTvApp {
                     self.mobileWebUrl = data.mobileUrl;
                     self.detectedServerIp = data.serverIp;
                     self.detectedServerPort = data.port;
-                    console.log('[App] Informações do servidor detectadas:', data);
                     return;
                 }
             }
         } catch (e) {
-            console.warn('[App] Não foi possível consultar /api/info automaticamente:', e.message);
+            // Silencioso em caso de servidor indisponível
         }
 
-        // Fallback
         self.mobileWebUrl = 'http://' + defaultHost + ':' + defaultPort + '/mobile';
         self.detectedServerIp = defaultHost;
         self.detectedServerPort = defaultPort;
-    }
-
-    /* ==========================================================================
-       MENU INFERIOR AUTO-OCULTÁVEL
-       ========================================================================== */
-    wakeBottomBar() {
-        var bar = document.getElementById('bottom-menu-bar');
-        if (!bar) return;
-
-        // Em tela cheia, o menu inferior deve permanecer sempre oculto
-        if (this.isFullScreen) {
-            bar.classList.remove('visible');
-            return;
-        }
-
-        bar.classList.add('visible');
-
-        if (this.bottomBarTimer) {
-            clearTimeout(this.bottomBarTimer);
-        }
-
-        // Se o foco estiver no próprio menu inferior, não fecha automaticamente
-        if (this.currentFocusZone === 'bottom-bar') {
-            return;
-        }
-
-        var self = this;
-        this.bottomBarTimer = setTimeout(function() {
-            if (self.currentFocusZone !== 'bottom-bar') {
-                bar.classList.remove('visible');
-            }
-        }, 4000);
     }
 
     updateBarLabels() {
@@ -214,52 +230,36 @@ class DvrTvApp {
             }
         });
 
-        // Eventos do mouse / movimento acordam o menu inferior
+        // Eventos do mouse / movimento acordam o cabeçalho e rodapé
         window.addEventListener('mousemove', function() {
-            self.wakeBottomBar();
+            self.wakeChrome();
         });
 
         // Botões do Menu Inferior
         var btnBarMenu = document.getElementById('btn-bar-menu');
-        if (btnBarMenu) {
-            btnBarMenu.addEventListener('click', function() { self.openDrawer(); });
-        }
+        if (btnBarMenu) btnBarMenu.addEventListener('click', function() { self.openDrawer(); });
 
         var btnBarSettings = document.getElementById('btn-bar-settings');
-        if (btnBarSettings) {
-            btnBarSettings.addEventListener('click', function() { self.openSettingsModal(); });
-        }
+        if (btnBarSettings) btnBarSettings.addEventListener('click', function() { self.openSettingsModal(); });
 
         var btnBarGrid = document.getElementById('btn-bar-grid');
-        if (btnBarGrid) {
-            btnBarGrid.addEventListener('click', function() { self.cycleGridMode(); });
-        }
+        if (btnBarGrid) btnBarGrid.addEventListener('click', function() { self.cycleGridMode(); });
 
         var btnBarQuality = document.getElementById('btn-bar-quality');
-        if (btnBarQuality) {
-            btnBarQuality.addEventListener('click', function() { self.toggleStreamQuality(); });
-        }
+        if (btnBarQuality) btnBarQuality.addEventListener('click', function() { self.toggleStreamQuality(); });
 
         var btnBarMobile = document.getElementById('btn-bar-mobile');
-        if (btnBarMobile) {
-            btnBarMobile.addEventListener('click', function() { self.openQrModal(); });
-        }
+        if (btnBarMobile) btnBarMobile.addEventListener('click', function() { self.openQrModal(); });
 
         var btnBarReconnect = document.getElementById('btn-bar-reconnect');
-        if (btnBarReconnect) {
-            btnBarReconnect.addEventListener('click', function() { self.connectDvr(); });
-        }
+        if (btnBarReconnect) btnBarReconnect.addEventListener('click', function() { self.connectDvr(); });
 
         var btnBarHelp = document.getElementById('btn-bar-help');
-        if (btnBarHelp) {
-            btnBarHelp.addEventListener('click', function() { self.openHelpModal(); });
-        }
+        if (btnBarHelp) btnBarHelp.addEventListener('click', function() { self.openHelpModal(); });
 
         // Itens do Menu Netflix (Drawer)
         var drawerItemCameras = document.getElementById('drawer-item-cameras');
-        if (drawerItemCameras) {
-            drawerItemCameras.addEventListener('click', function() { self.closeDrawer(); });
-        }
+        if (drawerItemCameras) drawerItemCameras.addEventListener('click', function() { self.closeDrawer(); });
 
         var drawerItemSettings = document.getElementById('drawer-item-settings');
         if (drawerItemSettings) {
@@ -270,14 +270,10 @@ class DvrTvApp {
         }
 
         var drawerItemFilter = document.getElementById('drawer-item-filter');
-        if (drawerItemFilter) {
-            drawerItemFilter.addEventListener('click', function() { self.toggleOfflineFilter(); });
-        }
+        if (drawerItemFilter) drawerItemFilter.addEventListener('click', function() { self.toggleOfflineFilter(); });
 
         var drawerItemGrid = document.getElementById('drawer-item-grid');
-        if (drawerItemGrid) {
-            drawerItemGrid.addEventListener('click', function() { self.cycleGridMode(); });
-        }
+        if (drawerItemGrid) drawerItemGrid.addEventListener('click', function() { self.cycleGridMode(); });
 
         var drawerItemMobile = document.getElementById('drawer-item-mobile');
         if (drawerItemMobile) {
@@ -296,16 +292,12 @@ class DvrTvApp {
         }
 
         var drawerItemExit = document.getElementById('drawer-item-exit');
-        if (drawerItemExit) {
-            drawerItemExit.addEventListener('click', function() { self.exitApp(); });
-        }
+        if (drawerItemExit) drawerItemExit.addEventListener('click', function() { self.exitApp(); });
 
         var drawerBackdrop = document.getElementById('drawer-backdrop');
-        if (drawerBackdrop) {
-            drawerBackdrop.addEventListener('click', function() { self.closeDrawer(); });
-        }
+        if (drawerBackdrop) drawerBackdrop.addEventListener('click', function() { self.closeDrawer(); });
 
-        // Modal QR Code
+        // Modais (QR Code, Ajuda, Configurações)
         var btnCloseQr = document.getElementById('btn-close-qrcode');
         var btnDismissQr = document.getElementById('btn-dismiss-qrcode');
         var qrBackdrop = document.getElementById('qrcode-backdrop');
@@ -313,7 +305,6 @@ class DvrTvApp {
         if (btnDismissQr) btnDismissQr.addEventListener('click', function() { self.closeQrModal(); });
         if (qrBackdrop) qrBackdrop.addEventListener('click', function() { self.closeQrModal(); });
 
-        // Modal Ajuda
         var btnCloseHelp = document.getElementById('btn-close-help');
         var btnDismissHelp = document.getElementById('btn-dismiss-help');
         var helpBackdrop = document.getElementById('help-backdrop');
@@ -321,7 +312,6 @@ class DvrTvApp {
         if (btnDismissHelp) btnDismissHelp.addEventListener('click', function() { self.closeHelpModal(); });
         if (helpBackdrop) helpBackdrop.addEventListener('click', function() { self.closeHelpModal(); });
 
-        // Modal Configurações
         var btnCloseModal = document.getElementById('btn-close-modal');
         var btnCancelModal = document.getElementById('btn-cancel-settings');
         var settingsBackdrop = document.getElementById('settings-backdrop');
@@ -330,19 +320,13 @@ class DvrTvApp {
         if (settingsBackdrop) settingsBackdrop.addEventListener('click', function() { self.closeSettingsModal(); });
 
         var btnToggleAdv = document.getElementById('btn-toggle-advanced');
-        if (btnToggleAdv) {
-            btnToggleAdv.addEventListener('click', function() { self.toggleAdvancedSection(); });
-        }
+        if (btnToggleAdv) btnToggleAdv.addEventListener('click', function() { self.toggleAdvancedSection(); });
 
         var btnSave = document.getElementById('btn-save-settings');
-        if (btnSave) {
-            btnSave.addEventListener('click', function() { self.saveSettings(); });
-        }
+        if (btnSave) btnSave.addEventListener('click', function() { self.saveSettings(); });
 
         var btnDefault = document.getElementById('btn-default-settings');
-        if (btnDefault) {
-            btnDefault.addEventListener('click', function() { self.restoreDefaultSettings(); });
-        }
+        if (btnDefault) btnDefault.addEventListener('click', function() { self.restoreDefaultSettings(); });
     }
 
     /* ==========================================================================
@@ -353,25 +337,25 @@ class DvrTvApp {
         var RemoteClass = window.RemoteControlManager || (typeof RemoteControlManager !== 'undefined' ? RemoteControlManager : null);
         if (RemoteClass) {
             this.remote = new RemoteClass({
-            onUp: function() { self.handleNavigation('up'); },
-            onDown: function() { self.handleNavigation('down'); },
-            onLeft: function() { self.handleNavigation('left'); },
-            onRight: function() { self.handleNavigation('right'); },
-            onEnter: function() { self.handleEnter(); },
-            onBack: function() { self.handleBack(); },
-            onRed: function() { self.handleRed(); },
-            onGreen: function() { self.handleGreen(); },
-            onYellow: function() { self.handleYellow(); },
-            onBlue: function() { self.handleBlue(); },
-            onChannelUp: function() { self.nextCamera(); },
-            onChannelDown: function() { self.prevCamera(); },
-            onNumber: function(num) { self.handleNumber(num); }
+                onUp: function() { self.handleNavigation('up'); },
+                onDown: function() { self.handleNavigation('down'); },
+                onLeft: function() { self.handleNavigation('left'); },
+                onRight: function() { self.handleNavigation('right'); },
+                onEnter: function() { self.handleEnter(); },
+                onBack: function() { self.handleBack(); },
+                onRed: function() { self.handleRed(); },
+                onGreen: function() { self.handleGreen(); },
+                onYellow: function() { self.handleYellow(); },
+                onBlue: function() { self.handleBlue(); },
+                onChannelUp: function() { self.nextCamera(); },
+                onChannelDown: function() { self.prevCamera(); },
+                onNumber: function(num) { self.handleNumber(num); }
             });
         }
     }
 
     /* ==========================================================================
-       CÁLCULO E RENDERIZAÇÃO DA GRADE (QUADRADA DINÂMICA)
+       CÁLCULO E RENDERIZAÇÃO DA GRADE (ESTRITAMENTE QUADRADAS NxN)
        ========================================================================== */
     getVisibleChannels() {
         if (!this.channels || this.channels.length === 0) return [];
@@ -382,8 +366,8 @@ class DvrTvApp {
     }
 
     /**
-     * Calcula a menor grade quadrada cuja capacidade seja >= visiveis
-     * 1 cam: 1x1 | 2-4: 2x2 | 5-9: 3x3 | 10-16: 4x4 | 17-25: 5x5 | 26-36: 6x6
+     * Calcula a menor grade quadrada NxN cuja capacidade seja >= visíveis
+     * 1: 1x1 | 2-4: 2x2 | 5-9: 3x3 | 10-16: 4x4 | 17-25: 5x5 | 26-36: 6x6
      */
     calculateOptimalGrid(visibleCount) {
         if (visibleCount <= 1) return { layout: '1x1', cols: 1, capacity: 1 };
@@ -402,11 +386,12 @@ class DvrTvApp {
         var visibleChannels = this.getVisibleChannels();
         var gridSpec;
 
-        if (this.gridMode === 'auto') {
+        // Permite somente grades estritamente quadradas
+        var validSquareGrids = ['1x1', '2x2', '3x3', '4x4', '5x5', '6x6'];
+        if (this.gridMode === 'auto' || validSquareGrids.indexOf(this.gridMode) === -1) {
             gridSpec = this.calculateOptimalGrid(visibleChannels.length);
         } else {
-            var colMap = { '1x1': 1, '2x2': 2, '3x3': 3, '4x4': 4, '5x5': 5, '6x6': 6 };
-            var cols = colMap[this.gridMode] || 4;
+            var cols = parseInt(this.gridMode.charAt(0), 10);
             gridSpec = { layout: this.gridMode, cols: cols, capacity: cols * cols };
         }
 
@@ -418,7 +403,7 @@ class DvrTvApp {
         grid.innerHTML = '';
 
         if (visibleChannels.length === 0) {
-            grid.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:20px;grid-column:1/-1;">Nenhuma câmera ativa encontrada.</div>';
+            grid.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:22px;grid-column:1/-1;">Nenhuma câmera ativa encontrada.</div>';
             return;
         }
 
@@ -426,7 +411,7 @@ class DvrTvApp {
             this.focusedIndex = 0;
         }
 
-        // 1. Renderiza as câmeras visíveis
+        // Renderiza canais visíveis
         visibleChannels.forEach(function(channel, index) {
             var card = document.createElement('div');
             var isFocused = (self.currentFocusZone === 'grid' && index === self.focusedIndex);
@@ -456,7 +441,6 @@ class DvrTvApp {
                         '</div>' +
                     '</div>';
             } else {
-                // Câmera offline: fundo preto sem tentar carregar snapshots continuamente
                 card.innerHTML = 
                     '<div class="card-video-wrap" style="background:#000;">' +
                         '<div class="camera-overlay-top">' +
@@ -480,7 +464,7 @@ class DvrTvApp {
             grid.appendChild(card);
         });
 
-        // 2. Preenche os slots vazios restantes com fundo estritamente preto
+        // Preenche slots vazios restantes com fundo estritamente preto
         var emptyCount = gridSpec.capacity - visibleChannels.length;
         for (var k = 0; k < emptyCount; k++) {
             var emptySlot = document.createElement('div');
@@ -511,7 +495,6 @@ class DvrTvApp {
         this.gridRefreshTimer = setInterval(function() {
             if (self.isFullScreen || self.isModalOpen || self.isDrawerOpen || self.isQrModalOpen || self.isHelpModalOpen) return;
 
-            // Atualiza apenas cards de câmeras ativas com imagem (ignora offline e empty-slot)
             var cards = document.querySelectorAll('.camera-card:not(.offline-card):not(.empty-slot)');
             cards.forEach(function(card) {
                 var chId = card.dataset.channelId;
@@ -521,6 +504,9 @@ class DvrTvApp {
                     var nextUrl = self.dvr.getSnapshotUrl(chId, 2);
                     newImg.onload = function() {
                         img.src = nextUrl;
+                        if (self.dvr && self.dvr.recordBytes) {
+                            self.dvr.recordBytes(22000); // ~22KB por quadro de sub-stream
+                        }
                     };
                     newImg.src = nextUrl;
                 }
@@ -532,10 +518,10 @@ class DvrTvApp {
        CONEXÃO COM O DVR
        ========================================================================== */
     async connectDvr() {
-        this.setConnectionStatus('connecting', 'Conectando ao DVR...');
+        this.setConnectionStatus('connecting', 'Conectando...');
         try {
             await this.dvr.login();
-            this.setConnectionStatus('online', 'Conectado • Ao Vivo');
+            this.setConnectionStatus('online', 'Conectado');
 
             try {
                 var deviceInfo = await this.dvr.getDeviceInfo();
@@ -546,7 +532,7 @@ class DvrTvApp {
                     }
                 }
             } catch (errDev) {
-                console.warn('[DVR] Não foi possível ler deviceInfo:', errDev);
+                console.warn('[DVR] deviceInfo omitido:', errDev);
             }
 
             var channels = await this.dvr.getChannels();
@@ -562,7 +548,7 @@ class DvrTvApp {
     }
 
     /* ==========================================================================
-       MENU NETFLIX (DRAWER LATERAL NO BOTÃO VOLTAR)
+       MENU NETFLIX (DRAWER LATERAL)
        ========================================================================== */
     openDrawer() {
         if (this.isFullScreen) return;
@@ -585,7 +571,7 @@ class DvrTvApp {
 
         this.currentFocusZone = 'grid';
         this.updateCardFocus();
-        this.wakeBottomBar();
+        this.wakeChrome();
         this.syncStateToServer();
     }
 
@@ -622,14 +608,14 @@ class DvrTvApp {
     }
 
     cycleGridMode() {
-        var modes = ['auto', '1x1', '2x2', '3x3', '4x4', '5x5', '6x6'];
-        var idx = modes.indexOf(this.gridMode);
-        var nextIdx = (idx + 1) % modes.length;
-        this.gridMode = modes[nextIdx];
+        var squareModes = ['auto', '1x1', '2x2', '3x3', '4x4', '5x5', '6x6'];
+        var idx = squareModes.indexOf(this.gridMode);
+        var nextIdx = (idx + 1) % squareModes.length;
+        this.gridMode = squareModes[nextIdx];
         localStorage.setItem('dvr_grid_mode', this.gridMode);
         this.renderGrid();
         this.updateBarLabels();
-        this.showToast('Modo de Grade: ' + (this.gridMode === 'auto' ? 'Automático' : this.gridMode.toUpperCase()));
+        this.showToast('Grade: ' + (this.gridMode === 'auto' ? 'Automática' : this.gridMode.toUpperCase()));
     }
 
     toggleStreamQuality() {
@@ -641,12 +627,12 @@ class DvrTvApp {
             this.openFullScreen(this.fullScreenChannel);
         }
 
-        this.showToast('Qualidade de Vídeo: ' + (this.streamQuality === 'main' ? 'HD 1080p' : 'Fluido (Sub-Stream)'));
+        this.showToast('Qualidade: ' + (this.streamQuality === 'main' ? 'HD 1080p' : 'Fluido (Sub-Stream)'));
         this.syncStateToServer();
     }
 
     /* ==========================================================================
-       MODAL QR CODE (CONTROLAR PELO CELULAR)
+       MODAL QR CODE
        ========================================================================== */
     openQrModal() {
         this.isQrModalOpen = true;
@@ -673,10 +659,9 @@ class DvrTvApp {
                         correctLevel: QRCode.CorrectLevel.M
                     });
                 } else {
-                    qrContainer.innerHTML = '<div style="color:#000;font-weight:700;padding:20px;">Acesse: ' + targetUrl + '</div>';
+                    qrContainer.innerHTML = '<div style="color:#000;font-weight:700;padding:20px;">' + targetUrl + '</div>';
                 }
             } catch (errQr) {
-                console.error('[App] Erro ao renderizar QRCode:', errQr);
                 qrContainer.innerHTML = '<div style="color:#000;font-weight:700;padding:20px;">' + targetUrl + '</div>';
             }
         }
@@ -692,11 +677,11 @@ class DvrTvApp {
 
         this.currentFocusZone = 'grid';
         this.updateCardFocus();
-        this.wakeBottomBar();
+        this.wakeChrome();
     }
 
     /* ==========================================================================
-       MODAL AJUDA E ATALHOS
+       MODAL AJUDA
        ========================================================================== */
     openHelpModal() {
         this.isHelpModalOpen = true;
@@ -716,11 +701,11 @@ class DvrTvApp {
 
         this.currentFocusZone = 'grid';
         this.updateCardFocus();
-        this.wakeBottomBar();
+        this.wakeChrome();
     }
 
     /* ==========================================================================
-       MODAL DE CONFIGURAÇÕES
+       MODAL CONFIGURAÇÕES
        ========================================================================== */
     openSettingsModal() {
         this.isModalOpen = true;
@@ -762,7 +747,7 @@ class DvrTvApp {
 
         this.currentFocusZone = 'grid';
         this.updateCardFocus();
-        this.wakeBottomBar();
+        this.wakeChrome();
     }
 
     toggleAdvancedSection() {
@@ -897,11 +882,11 @@ class DvrTvApp {
         if (httpPortInput) httpPortInput.value = '80';
         if (rtspPortInput) rtspPortInput.value = '554';
 
-        this.showToast('Padrões restaurados na tela. Clique em Salvar para aplicar.');
+        this.showToast('Padrões restaurados na tela. Salve para aplicar.');
     }
 
     /* ==========================================================================
-       TELA CHEIA REAL (SEM CABEÇALHO, SEM MENUS PERMANENTES)
+       TELA CHEIA DEDICADA / CÂMERA ÚNICA
        ========================================================================== */
     openFullScreen(channel) {
         if (!channel) return;
@@ -914,10 +899,9 @@ class DvrTvApp {
         var bottomBar = document.getElementById('bottom-menu-bar');
 
         if (fsView) fsView.style.display = 'flex';
-        if (appHeader) appHeader.style.display = 'none';
+        if (appHeader) appHeader.classList.remove('visible');
         if (bottomBar) bottomBar.classList.remove('visible');
 
-        // Indicador flutuante que desaparece após 2.5s
         var toastBadge = document.getElementById('fs-toast-badge');
         var badgeTitle = document.getElementById('fs-badge-title');
         var badgeQuality = document.getElementById('fs-badge-quality');
@@ -941,17 +925,9 @@ class DvrTvApp {
             }, 2500);
         }
 
-        // Determinar fluxo RTSP
-        var streamId = (this.streamQuality === 'main') 
-            ? (channel.mainStreamChannelId || (channel.id * 100 + 1))
-            : (channel.subStreamChannelId || (channel.id * 100 + 2));
-
-        var rtspUrl = this.dvr.getRtspUrl(streamId);
-        var snapshotStream = (this.streamQuality === 'main') ? 1 : 2;
-        var fallbackSnapshotUrl = this.dvr.getSnapshotUrl(channel.id, snapshotStream);
-
+        var streamType = (this.streamQuality === 'main') ? 1 : 2;
         if (this.player) {
-            this.player.play(channel.id, (this.streamQuality === "main" ? 1 : 2));
+            this.player.play(channel.id, streamType);
         }
 
         this.syncStateToServer();
@@ -963,10 +939,7 @@ class DvrTvApp {
         this.fullScreenChannel = null;
 
         var fsView = document.getElementById('fullscreen-view');
-        var appHeader = document.getElementById('app-header');
-
         if (fsView) fsView.style.display = 'none';
-        if (appHeader) appHeader.style.display = 'flex';
 
         if (this.player) {
             this.player.stop();
@@ -974,7 +947,7 @@ class DvrTvApp {
 
         this.currentFocusZone = 'grid';
         this.updateCardFocus();
-        this.wakeBottomBar();
+        this.wakeChrome();
         this.syncStateToServer();
     }
 
@@ -1006,9 +979,9 @@ class DvrTvApp {
        GESTÃO DE FOCO E NAVEGAÇÃO 100% VIA SETAS E OK
        ========================================================================== */
     handleNavigation(direction) {
-        this.wakeBottomBar();
+        this.wakeChrome();
 
-        // 1. Navegação no Modal de Configurações
+        // 1. Modal de Configurações
         if (this.currentFocusZone === 'modal' && this.isModalOpen) {
             var len = this.modalFocusableElements.length;
             if (len === 0) return;
@@ -1023,7 +996,7 @@ class DvrTvApp {
             return;
         }
 
-        // 2. Navegação no Menu Netflix (Drawer)
+        // 2. Menu Netflix (Drawer)
         if (this.currentFocusZone === 'drawer' && this.isDrawerOpen) {
             var items = this.getDrawerItems();
             var dLen = items.length;
@@ -1036,13 +1009,12 @@ class DvrTvApp {
                 this.drawerFocusIndex = (this.drawerFocusIndex + 1) % dLen;
                 this.updateDrawerFocus();
             } else if (direction === 'right') {
-                // Seta para direita fecha o drawer e retorna para a grade
                 this.closeDrawer();
             }
             return;
         }
 
-        // 3. Navegação em Tela Cheia
+        // 3. Em Tela Cheia
         if (this.currentFocusZone === 'fullscreen' && this.isFullScreen) {
             if (direction === 'up' || direction === 'right') {
                 this.nextCamera();
@@ -1052,7 +1024,7 @@ class DvrTvApp {
             return;
         }
 
-        // 4. Navegação no Menu Inferior
+        // 4. Menu Inferior
         if (this.currentFocusZone === 'bottom-bar') {
             var barButtons = [
                 document.getElementById('btn-bar-menu'),
@@ -1065,7 +1037,6 @@ class DvrTvApp {
             ].filter(function(el) { return el !== null; });
 
             if (direction === 'up') {
-                // Seta para cima retorna o foco para a grade de câmeras
                 this.currentFocusZone = 'grid';
                 this.updateBottomBarFocus(barButtons, -1);
                 this.updateCardFocus();
@@ -1082,7 +1053,7 @@ class DvrTvApp {
             return;
         }
 
-        // 5. Navegação na Grade de Câmeras
+        // 5. Grade de Câmeras
         if (this.currentFocusZone === 'grid') {
             var visibleChannels = this.getVisibleChannels();
             if (visibleChannels.length === 0) return;
@@ -1101,7 +1072,7 @@ class DvrTvApp {
                     if (this.focusedIndex + cols < total) {
                         this.focusedIndex += cols;
                     } else {
-                        // Ao descer da última fileira da grade, passa o foco para o Menu Inferior!
+                        // Descer da última fileira passa o foco para a barra inferior
                         this.currentFocusZone = 'bottom-bar';
                         this.bottomBarFocusIndex = 0;
                         var barBtns = [
@@ -1151,16 +1122,14 @@ class DvrTvApp {
        ENTER / OK
        ========================================================================== */
     handleEnter() {
-        this.wakeBottomBar();
+        this.wakeChrome();
 
-        // 1. Dentro do Modal de Configurações
         if (this.currentFocusZone === 'modal' && this.isModalOpen) {
             var el = this.modalFocusableElements[this.modalFocusIndex];
             if (el) {
                 if (el.tagName === 'BUTTON') {
                     el.click();
                 } else if (el.tagName === 'SELECT') {
-                    // Alterna valor do select
                     if (el.selectedIndex < el.options.length - 1) {
                         el.selectedIndex++;
                     } else {
@@ -1173,7 +1142,6 @@ class DvrTvApp {
             return;
         }
 
-        // 2. Dentro do Menu Netflix (Drawer)
         if (this.currentFocusZone === 'drawer' && this.isDrawerOpen) {
             var items = this.getDrawerItems();
             var item = items[this.drawerFocusIndex];
@@ -1181,7 +1149,6 @@ class DvrTvApp {
             return;
         }
 
-        // 3. Modal QR Code ou Ajuda
         if (this.isQrModalOpen) {
             this.closeQrModal();
             return;
@@ -1191,7 +1158,6 @@ class DvrTvApp {
             return;
         }
 
-        // 4. Dentro do Menu Inferior
         if (this.currentFocusZone === 'bottom-bar') {
             var barBtns = [
                 document.getElementById('btn-bar-menu'),
@@ -1209,13 +1175,11 @@ class DvrTvApp {
             return;
         }
 
-        // 5. Em Tela Cheia: Alterna HD/Fluido
         if (this.isFullScreen) {
             this.toggleStreamQuality();
             return;
         }
 
-        // 6. Na Grade: Abre câmera selecionada em Tela Cheia
         var visibleChannels = this.getVisibleChannels();
         if (visibleChannels.length > 0 && this.focusedIndex < visibleChannels.length) {
             this.openFullScreen(visibleChannels[this.focusedIndex]);
@@ -1223,9 +1187,11 @@ class DvrTvApp {
     }
 
     /* ==========================================================================
-       BOTÃO VOLTAR (CONTEXTUAL: RETORNA OU ABRE MENU NETFLIX)
+       BOTÃO VOLTAR: 1 CLIQUE ABRE MENU LATERAL | 2 CLIQUES SAI DO APP
        ========================================================================== */
     handleBack() {
+        var self = this;
+
         if (this.isFullScreen) {
             this.closeFullScreen();
             return;
@@ -1246,13 +1212,34 @@ class DvrTvApp {
             return;
         }
 
+        // Se o drawer já estiver aberto, fecha
         if (this.isDrawerOpen) {
+            // Se clicar de novo enquanto o drawer está aberto, confirma saída
+            if (this.backPressTimer) {
+                clearTimeout(this.backPressTimer);
+                this.backPressTimer = null;
+                this.exitApp();
+                return;
+            }
             this.closeDrawer();
             return;
         }
 
-        // Na grade principal, sem modal aberto: abre o menu estilo Netflix!
+        // Na grade principal:
+        if (this.backPressTimer) {
+            // Segundo clique dentro da janela de 1.5s -> SAI DO APP
+            clearTimeout(this.backPressTimer);
+            this.backPressTimer = null;
+            this.exitApp();
+            return;
+        }
+
+        // Primeiro clique: abre menu lateral e arma o timer de 1.5s
         this.openDrawer();
+        this.showToast('Pressione VOLTAR novamente para sair do aplicativo', 1500);
+        this.backPressTimer = setTimeout(function() {
+            self.backPressTimer = null;
+        }, 1500);
     }
 
     /* ==========================================================================
@@ -1301,6 +1288,7 @@ class DvrTvApp {
     }
 
     exitApp() {
+        console.log('[App] Encerrando aplicativo DVR TV...');
         if (typeof window.tizen !== 'undefined' && typeof window.tizen.application !== 'undefined') {
             try {
                 window.tizen.application.getCurrentApplication().exit();
@@ -1336,6 +1324,7 @@ class DvrTvApp {
             quality: this.streamQuality,
             gridMode: this.gridMode,
             showOffline: this.showOfflineCameras,
+            bandwidth: this.dvr ? (this.dvr.bandwidthFormatted || '0 KB/s') : '0 KB/s',
             channels: (this.channels || []).map(function(c) {
                 return { id: c.id, name: c.name, isOnline: c.isOnline };
             })
@@ -1345,9 +1334,7 @@ class DvrTvApp {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(statePayload)
-        }).catch(function() {
-            // Ignorar falha de sync se o servidor PC não estiver ativo
-        });
+        }).catch(function() {});
     }
 
     startSyncPolling() {
@@ -1371,9 +1358,7 @@ class DvrTvApp {
                         });
                     }
                 }
-            } catch (e) {
-                // Silencioso em caso de servidor offline
-            }
+            } catch (e) {}
         }, 500);
     }
 
@@ -1382,7 +1367,7 @@ class DvrTvApp {
         var chId = cmdObj.channelId;
         var val = cmdObj.value;
 
-        console.log('[Remote Sync] Executando comando recebido:', cmd, chId, val);
+        console.log('[Remote Sync] Comando recebido:', cmd, chId, val);
 
         switch (cmd) {
             case 'select_camera':
@@ -1496,9 +1481,6 @@ class DvrTvApp {
         this.syncStateToServer();
     }
 
-    /* ==========================================================================
-       UTILITÁRIO: TOAST DE NOTIFICAÇÃO
-       ========================================================================== */
     showToast(msg, duration) {
         duration = duration || 3000;
         var toast = document.getElementById('toast-notification');

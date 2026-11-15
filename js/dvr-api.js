@@ -24,6 +24,10 @@ class DvrApiClient {
         this.heartbeatTimer = null;
         this.deviceInfo = null;
         this.channels = [];
+        this.bytesLoadedInWindow = 0;
+        this.bandwidthFormatted = '0 KB/s';
+        this.bandwidthTimer = null;
+        this.bandwidthCallback = null;
     }
 
     get baseUrl() {
@@ -290,6 +294,51 @@ class DvrApiClient {
     /**
      * Gera URL RTSP para reprodução via Samsung AVPlay
      */
+    
+    /**
+     * Registra tráfego de dados para cálculo de velocidade da banda (KB/s ou MB/s)
+     */
+    recordBytes(bytes) {
+        if (typeof bytes === 'number' && !isNaN(bytes) && bytes > 0) {
+            this.bytesLoadedInWindow += bytes;
+        }
+    }
+
+    /**
+     * Inicia o monitor de velocidade de rede em tempo real (1s interval)
+     */
+    startBandwidthMonitor(callback) {
+        var self = this;
+        this.bandwidthCallback = callback;
+        if (this.bandwidthTimer) clearInterval(this.bandwidthTimer);
+
+        this.bandwidthTimer = setInterval(function() {
+            var bytes = self.bytesLoadedInWindow;
+            self.bytesLoadedInWindow = 0;
+
+            var formatted = '0 KB/s';
+            if (bytes >= 1048576) {
+                formatted = (bytes / 1048576).toFixed(1) + ' MB/s';
+            } else if (bytes > 0) {
+                formatted = Math.round(bytes / 1024) + ' KB/s';
+            } else {
+                formatted = '0 KB/s';
+            }
+
+            self.bandwidthFormatted = formatted;
+            if (self.bandwidthCallback) {
+                self.bandwidthCallback(formatted);
+            }
+        }, 1000);
+    }
+
+    stopBandwidthMonitor() {
+        if (this.bandwidthTimer) {
+            clearInterval(this.bandwidthTimer);
+            this.bandwidthTimer = null;
+        }
+    }
+
     getRtspUrl(channelId, streamType) {
         streamType = streamType || 1;
         var chId = channelId * 100 + streamType;
