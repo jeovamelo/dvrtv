@@ -562,6 +562,31 @@
     <script>
         let latestTvState = null;
         let sessionToken = localStorage.getItem('mobile_session_token') || '';
+        const pairFromQr = new URLSearchParams(location.search).get('pair') || '';
+        let tvPairId = pairFromQr || localStorage.getItem('dvr_tv_pair') || '';
+        let mobileDeviceId = localStorage.getItem('dvr_mobile_device_id') || '';
+        if (!mobileDeviceId) {
+            mobileDeviceId = (crypto.randomUUID ? crypto.randomUUID() : 'mobile-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+            localStorage.setItem('dvr_mobile_device_id', mobileDeviceId);
+        }
+        let mobileDeviceName = localStorage.getItem('dvr_mobile_device_name') || '';
+        if (tvPairId) localStorage.setItem('dvr_tv_pair', tvPairId.toUpperCase());
+        if (tvPairId) {
+            mobileDeviceName = (pairFromQr || !mobileDeviceName) ? window.prompt('Digite um nome para este celular:', mobileDeviceName || 'Celular') : mobileDeviceName;
+            if (mobileDeviceName) localStorage.setItem('dvr_mobile_device_name', mobileDeviceName.trim().slice(0, 40));
+            fetch('/api/pair/claim', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: tvPairId, deviceId: mobileDeviceId, deviceName: mobileDeviceName })
+            }).then(r => r.ok ? r.json() : null).then(pair => {
+                if (pair && pair.success) {
+                    tvPairId = pair.pairId;
+                    localStorage.setItem('dvr_tv_id', pair.tvId || '');
+                    showToast('Celular vinculado à TV: ' + (pair.linkedCount || 1) + '/5');
+                } else if (pair && pair.error) {
+                    showToast(pair.error);
+                }
+            }).catch(() => {});
+        }
         let pollTimer = null;
         // Permite ESTRITAMENTE grades quadradas
         const squareGrids = ['auto', '1x1', '2x2', '3x3', '4x4', '5x5', '6x6'];
@@ -595,7 +620,7 @@
                 const res = await fetch('/api/mobile/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: user, password: pass })
+                    body: JSON.stringify({ username: user, password: pass, pairId: tvPairId })
                 });
 
                 const data = await res.json();
@@ -633,7 +658,7 @@
             try {
                 const res = await fetch('/api/mobile/login', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: user, password: pass }), cache: 'no-store'
+                    body: JSON.stringify({ username: user, password: pass, pairId: tvPairId }), cache: 'no-store'
                 });
                 const data = await res.json();
                 if (data.success && data.token) {
@@ -652,7 +677,7 @@
             }
 
             try {
-                const directPayload = { command: cmd, channelId: channelId, value: value };
+                const directPayload = { command: cmd, channelId: channelId, value: value, pairId: tvPairId };
                 if (window.DvrSmartView && window.DvrSmartView.send(directPayload)) {
                     showToast('Comando enviado diretamente à TV');
                     return { success: true, direct: true };
@@ -661,9 +686,10 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'x-session-token': sessionToken
+                        'x-session-token': sessionToken,
+                        'x-tv-pair': tvPairId
                     },
-                    body: JSON.stringify({ command: cmd, channelId: channelId, value: value })
+                    body: JSON.stringify({ command: cmd, channelId: channelId, value: value, pairId: tvPairId })
                 });
 
                 if (res.status === 401) {
@@ -690,10 +716,17 @@
         }
 
         function cycleSquareGrid() {
-            const grids = window.allowedGrids || ['auto', '4x4', '5x5', '6x6'];
-            currentGridIdx = (currentGridIdx + 1) % grids.length;
+            // Usa a mesma lista da TV, incluindo 1x1/2x2/3x3.
+            const grids = (latestTvState && Array.isArray(latestTvState.allowedGrids) && latestTvState.allowedGrids.length)
+                ? latestTvState.allowedGrids
+                : ['auto', '1x1', '2x2', '3x3', '4x4', '5x5', '6x6'];
+            const current = latestTvState && grids.indexOf(latestTvState.gridMode) >= 0
+                ? grids.indexOf(latestTvState.gridMode) : currentGridIdx;
+            currentGridIdx = (current + 1) % grids.length;
             const nextMode = grids[currentGridIdx];
-            sendCommand('set_grid', null, nextMode);
+            sendCommand('set_grid', null, nextMode).then(function (result) {
+                if (result && result.success !== false) showToast('Grade: ' + nextMode.toUpperCase());
+            });
         }
 
                 function openMobileSettings() {
@@ -919,6 +952,9 @@
 
             const idx = squareGrids.indexOf(state.gridMode);
             if (idx !== -1) currentGridIdx = idx;
+            if (Array.isArray(state.allowedGrids) && state.allowedGrids.length) {
+                window.allowedGrids = state.allowedGrids;
+            }
         }
 
         function startStatePolling() {

@@ -669,6 +669,20 @@ class DvrTvApp {
             grid.appendChild(card);
         });
 
+        if (!(window.location && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))) {
+            pageChannels.forEach(function(channel) {
+                if (channel.isOnline) {
+                    self.dvr.fetchSnapshotBlob(channel.id, 2).then(function(blobUrl) {
+                        var cardImg = grid.querySelector('.camera-card[data-channel-id="' + channel.id + '"] .camera-img');
+ if (cardImg) {
+ cardImg.dataset.blobUrl = blobUrl;
+ cardImg.src = blobUrl;
+ }
+ }).catch(function() {});
+ }
+ });
+ }
+
         // Preenche slots vazios restantes para garantir que a grade seja estritamente quadrada
         var emptyCount = gridSpec.capacity - pageChannels.length;
         for (var k = 0; k < emptyCount; k++) {
@@ -705,15 +719,29 @@ class DvrTvApp {
                 var chId = card.dataset.channelId;
                 var img = card.querySelector('.camera-img');
                 if (img && chId) {
-                    var newImg = new Image();
-                    var nextUrl = self.dvr.getSnapshotUrl(chId, 2);
-                    newImg.onload = function() {
-                        img.src = nextUrl;
-                        if (self.dvr && self.dvr.recordBytes) {
-                            self.dvr.recordBytes(22000); // ~22KB por quadro de sub-stream
-                        }
-                    };
-                    newImg.src = nextUrl;
+                    if (window.location && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+                        var newImg = new Image();
+                        var nextUrl = self.dvr.getSnapshotUrl(chId, 2);
+                        newImg.onload = function() {
+                            img.src = nextUrl;
+                            if (self.dvr && self.dvr.recordBytes) {
+                                self.dvr.recordBytes(22000);
+                            }
+                        };
+                        newImg.src = nextUrl;
+                    } else {
+                        self.dvr.fetchSnapshotBlob(chId, 2).then(function(blobUrl) {
+                            var oldBlob = img.dataset.blobUrl;
+                            img.dataset.blobUrl = blobUrl;
+                            img.src = blobUrl;
+                            if (oldBlob) {
+                                setTimeout(function() { try { URL.revokeObjectURL(oldBlob); } catch(e) {} }, 600);
+                            }
+                            if (self.dvr && self.dvr.recordBytes) {
+                                self.dvr.recordBytes(22000);
+                            }
+                        }).catch(function() {});
+                    }
                 }
             });
         }, 1200);
@@ -996,6 +1024,15 @@ class DvrTvApp {
         // O QR Code abre a página hospedada na VPS. A TV não hospeda Node.js
         // nem a rota /mobile; o IP local da TV será usado apenas no pareamento.
         var targetUrl = 'https://dvr.ilocseguro.com/mobile';
+        try {
+            var pairRes = await fetch(this.getRemoteControlServerBase() + '/api/pair/create', { method: 'POST', cache: 'no-store' });
+            var pairData = await pairRes.json();
+            if (pairData && pairData.code) {
+                localStorage.setItem('dvr_tv_id', pairData.tvId || '');
+                localStorage.setItem('dvr_tv_pair', pairData.code);
+                targetUrl += '?pair=' + encodeURIComponent(pairData.code);
+            }
+        } catch (pairErr) { console.warn('[Pairing] Não foi possível criar código:', pairErr); }
         var addrEl = document.getElementById('qr-address-url');
         if (addrEl) addrEl.textContent = targetUrl;
 
@@ -1382,6 +1419,7 @@ class DvrTvApp {
 
         var fsView = document.getElementById('fullscreen-view');
         if (fsView) fsView.style.display = 'flex';
+        this.fitFullscreenPlayer();
 
         // Atualiza título no cabeçalho superior para a câmera em tela cheia
         var titleEl = document.getElementById('dvr-title');
@@ -1419,10 +1457,23 @@ class DvrTvApp {
 
         var streamType = (this.streamQuality === 'main') ? 1 : 2;
         if (this.player) {
-            this.player.play(channel.id, streamType);
+            var initialSrc = '';
+            var activeCard = document.querySelector('.camera-card[data-channel-id="' + channel.id + '"] .camera-img');
+            if (activeCard && activeCard.src) initialSrc = activeCard.src;
+            this.player.play(channel.id, streamType, initialSrc);
         }
 
         this.syncStateToServer();
+    }
+
+    fitFullscreenPlayer() {
+        var container = document.getElementById('fullscreen-player-container');
+        if (!container) return;
+        container.style.setProperty('width', '100vw', 'important');
+        container.style.setProperty('height', '100vh', 'important');
+        if (this.player && this.player.resize) {
+            this.player.resize();
+        }
     }
 
     closeFullScreen() {
@@ -2005,7 +2056,9 @@ class DvrTvApp {
             var baseApi = self.getRemoteControlServerBase();
 
             try {
-                var res = await fetch(baseApi + '/api/remote/poll');
+            var pairId = localStorage.getItem('dvr_tv_pair') || '';
+            var pollUrl = baseApi + '/api/remote/poll' + (pairId ? '?pairId=' + encodeURIComponent(pairId) : '');
+            var res = await fetch(pollUrl, { cache: 'no-store' });
                 if (res.ok) {
                     var data = await res.json();
                     if (data && data.commands && data.commands.length > 0) {

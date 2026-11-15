@@ -113,9 +113,18 @@ let tvState = {
 
 // Fila de comandos pendentes enviados pelo celular para a TV
 let commandQueue = [];
+const pairingCodes = new Map();
+const tvDevices = new Map(); // tvId -> [{ deviceId, name, pairedAt }]
+const tvIdentity = process.env.DVR_TV_ID || 'DVR-TV-' + crypto.createHash('sha1').update(os.hostname()).digest('hex').slice(0, 6).toUpperCase();
 
 // Sessões autenticadas do celular (token -> { user, createdAt, expiresAt })
 const activeSessions = new Map();
+
+function createPairingCode() {
+    const code = crypto.randomBytes(6).toString('hex').toUpperCase();
+    pairingCodes.set(code, { tvId: tvIdentity, expiresAt: Date.now() + 10 * 60 * 1000 });
+    return code;
+}
 
 function generateSessionToken(username) {
     const token = crypto.randomBytes(24).toString('hex');
@@ -264,10 +273,54 @@ const server = http.createServer((req, res) => {
             mobileUrl: 'https://dvr.ilocseguro.com/mobile',
             configured: dvrConfigured,
             dvrHost: defaultDvrHost,
-            dvrPort: defaultDvrPort
+            dvrPort: defaultDvrPort,
+            tvId: tvIdentity
         };
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(info));
+        return;
+    }
+
+    if (pathname === '/api/pair/create' && req.method === 'POST') {
+        const code = createPairingCode();
+        const devices = tvDevices.get(tvIdentity) || [];
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, tvId: tvIdentity, code, linkedCount: devices.length, maxDevices: 5, expiresIn: 600 }));
+        return;
+    }
+
+    if (pathname === '/api/pair/claim' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            let data = {};
+            try { data = JSON.parse(body || '{}'); } catch (_) {}
+            const entry = pairingCodes.get(String(data.code || '').toUpperCase());
+            if (!entry || Date.now() > entry.expiresAt) {
+                res.writeHead(410, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: 'Código de pareamento expirado.' }));
+                return;
+            }
+            const devices = tvDevices.get(entry.tvId) || [];
+            const deviceId = String(data.deviceId || '').trim() || crypto.randomBytes(8).toString('hex');
+            const deviceName = String(data.deviceName || '').trim().slice(0, 40);
+            if (!deviceName) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: 'Informe um nome para este celular.' }));
+                return;
+            }
+            const existing = devices.find(device => device.deviceId === deviceId);
+            if (!existing && devices.length >= 5) {
+                res.writeHead(409, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: 'Esta TV já possui cinco celulares vinculados.' }));
+                return;
+            }
+            if (existing) existing.name = deviceName;
+            else devices.push({ deviceId, name: deviceName, pairedAt: new Date().toISOString() });
+            tvDevices.set(entry.tvId, devices);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, tvId: entry.tvId, pairId: String(data.code).toUpperCase(), deviceId, deviceName, linkedCount: devices.length, maxDevices: 5 }));
+        });
         return;
     }
 
@@ -410,6 +463,7 @@ const server = http.createServer((req, res) => {
             try {
                 const cmdData = JSON.parse(body || '{}');
                 const isSetupCommand = cmdData.command === 'configure_dvr';
+                const pairId = String(cmdData.pairId || req.headers['x-tv-pair'] || '').toUpperCase();
                 if (!isValidSession(token) && !isSetupCommand) {
                     res.writeHead(401, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: false, error: 'Sessão não autorizada' }));
@@ -435,6 +489,7 @@ const server = http.createServer((req, res) => {
                     command: cmdData.command,
                     channelId: cmdData.channelId || null,
                     value: cmdData.value || null,
+                    pairId: pairId || null,
                     timestamp: Date.now()
                 });
 
@@ -459,8 +514,9 @@ const server = http.createServer((req, res) => {
 
     // 5. API TV: Polling de Comandos Pendentes
     if (pathname === '/api/remote/poll' && req.method === 'GET') {
-        const pending = [...commandQueue];
-        commandQueue = [];
+        const pairId = String(parsedUrl.searchParams.get('pairId') || req.headers['x-tv-pair'] || '').toUpperCase();
+        const pending = commandQueue.filter(command => !command.pairId || !pairId || command.pairId === pairId);
+        commandQueue = commandQueue.filter(command => !pending.includes(command));
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ commands: pending }));
         return;
