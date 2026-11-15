@@ -1,0 +1,41 @@
+# Impeccable Design System & Smart TV (10-Foot UI) Rules
+# Based on pbakaus/impeccable repository approach
+
+## 1. Anti-Slop Design Principles
+- **No Generic AI Palettes**: Avoid default purple-to-blue gradients, uninspired slate monotones, and arbitrary border radii.
+- **Intentional Typography**: Establish a clear typographic hierarchy (Title, Section, Badge, Status, Caption). Every size, weight, and tracking value must have deliberate purpose.
+- **Surface Depth & Contrast**: Use purposeful elevation, crisp hairline borders (`1px solid rgba(56, 189, 248, 0.2)`), and selective glassmorphism with performance-safe backdrops.
+- **No Layout Clutter**: Strip away nested card boxes inside other cards. Keep layouts functional, direct, and focused on primary content (video feeds and active controls).
+
+## 2. Smart TV / Tizen (10-Foot UI) Specific Rules
+- **Viewing Distance**: Designed for 1080p (1920x1080) viewed from 3 meters (10 feet).
+  - Minimum body font: 14px.
+  - Primary labels & badges: 16px - 22px bold.
+  - High-contrast visual cues: color dots (`8px - 16px`), clear text labels, and unmistakable state badges.
+- **Focus Ring & Active States**:
+  - The focused element MUST be immediately obvious from across the room.
+  - Use high-contrast cyan glow: `border-color: #00f0ff !important; box-shadow: 0 0 22px rgba(0, 240, 255, 0.6) !important;`.
+  - Focused cards scale subtly (`transform: scale(1.02)`) without jittering or causing horizontal overflow.
+- **Remote Control Navigation (D-Pad & OK)**:
+  - 100% of interactions must be achievable via Up, Down, Left, Right, OK, and Back.
+  - Zero mouse-pointer dependencies.
+  - Left edge navigation: Pressing LEFT from column 0 slides open the Netflix Navigation Drawer.
+  - Right edge dismissal: Pressing RIGHT from inside the drawer dismisses it back to the grid.
+- **Strict 16:9 Widescreen Preservation**:
+  - CCTV cameras transmit 16:9 streams (or 4:3 sub-streams).
+  - Cameras MUST NEVER be squished, flattened, or compressed into panoramic ribbons.
+  - Every grid MUST be square ($N 	imes N$, cols = rows).
+  - Each page renders at most $N^2$ items. Extra cameras belong on subsequent pages.
+- **Translucent Overlays with Auto-Fade**:
+  - Header and footer use cinematic translucent vignettes (`background: linear-gradient(...)`).
+  - Automatically fade out (`opacity: 0`) after 4 seconds of inactivity.
+  - Instantly reappear on any remote control press or mouse movement.
+
+## 3. Impeccable Command Catalog
+The following commands are recognized for UI auditing and refinement:
+- `/impeccable audit`: Deterministic scan for accessibility, contrast, responsiveness, and anti-patterns.
+- `/impeccable critique`: Design review focusing on hierarchy, visual clarity, TV distance legibility, and tone.
+- `/impeccable polish`: Fine-tune micro-spacing, borders, typography, and focus ring alignment.
+- `/impeccable bolder`: Amplify visual contrast, punchier badges, and stronger active states.
+- `/impeccable distill`: Remove visual noise, unnecessary outlines, and simplify container geometry.
+- `/impeccable adapt`: Test and optimize viewport responsiveness across Smart TV, PC, and Mobile devices.

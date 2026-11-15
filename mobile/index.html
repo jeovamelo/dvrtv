@@ -428,8 +428,11 @@
 
             <!-- Botões de Ação Rápida -->
             <div class="remote-actions-grid">
+                <button class="action-btn btn-side-drawer" onclick="sendCommand('open_drawer')">
+                    <span>☰ Menu Lateral</span>
+                </button>
                 <button class="action-btn btn-back" onclick="sendCommand('dpad_back')">
-                    <span>🔙 Voltar / Menu</span>
+                    <span>🔙 Voltar</span>
                 </button>
                 <button class="action-btn btn-quality" onclick="sendCommand('toggle_quality')">
                     <span>⚡ HD / Fluido</span>
@@ -714,7 +717,8 @@
             if (state.currentView === 'fullscreen') {
                 viewEl.textContent = 'Câmera Única: ' + (state.selectedCameraName || ('CH ' + state.selectedChannelId));
             } else {
-                viewEl.textContent = 'Grade (' + (state.gridMode || 'Auto').toUpperCase() + ')';
+                const pageInfo = (state.totalPages && state.totalPages > 1) ? (' - Pág. ' + (state.currentPage || 1) + '/' + state.totalPages) : '';
+                viewEl.textContent = 'Grade (' + (state.gridMode || 'Auto').toUpperCase() + ')' + pageInfo;
             }
 
             const qEl = document.getElementById('badge-quality');

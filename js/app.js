@@ -39,7 +39,8 @@ class DvrTvApp {
 
         // Preferências persistidas no localStorage
         this.showOfflineCameras = (localStorage.getItem('dvr_show_offline') !== 'false');
-        this.gridMode = localStorage.getItem('dvr_grid_mode') || 'auto'; // 'auto', '1x1', '2x2', '3x3', '4x4', '5x5', '6x6'
+        this.gridMode = localStorage.getItem('dvr_grid_mode') || 'auto';
+        this.currentPage = 0; // 'auto', '1x1', '2x2', '3x3', '4x4', '5x5', '6x6'
         this.streamQuality = localStorage.getItem('dvr_stream_quality') || 'sub'; // 'sub' = Fluido, 'main' = HD
         this.serverUrl = localStorage.getItem('dvr_server_url') || '';
 
@@ -375,23 +376,21 @@ class DvrTvApp {
      * Retorna apenas as grades quadradas cuja capacidade é >= ao número de câmeras visíveis.
      * NUNCA permite grades com capacidade menor que as câmeras disponíveis.
      */
-    getAllowedSquareGrids() {
+    getCurrentGridSpec() {
         var visibleCount = this.getVisibleChannels().length;
-        var allGrids = [
-            { id: '1x1', cap: 1 },
-            { id: '2x2', cap: 4 },
-            { id: '3x3', cap: 9 },
-            { id: '4x4', cap: 16 },
-            { id: '5x5', cap: 25 },
-            { id: '6x6', cap: 36 }
-        ];
-        var allowed = ['auto'];
-        for (var i = 0; i < allGrids.length; i++) {
-            if (allGrids[i].cap >= visibleCount) {
-                allowed.push(allGrids[i].id);
-            }
+        if (this.gridMode === 'auto') {
+            return this.calculateOptimalGrid(visibleCount);
         }
-        return allowed;
+        var cols = parseInt(this.gridMode.charAt(0), 10);
+        return { layout: this.gridMode, cols: cols, capacity: cols * cols };
+    }
+
+    getCurrentPageChannels() {
+        var visibleChannels = this.getVisibleChannels();
+        if (visibleChannels.length === 0) return [];
+        var gridSpec = this.getCurrentGridSpec();
+        var startIndex = this.currentPage * gridSpec.capacity;
+        return visibleChannels.slice(startIndex, startIndex + gridSpec.capacity);
     }
 
     renderGrid() {
@@ -400,41 +399,46 @@ class DvrTvApp {
         if (!grid) return;
 
         var visibleChannels = this.getVisibleChannels();
-        var allowed = this.getAllowedSquareGrids();
-
-        // NUNCA permitir uma grade cuja quantidade seja menor que as disponíveis (evita paginação e travamento)
-        if (this.gridMode !== 'auto' && allowed.indexOf(this.gridMode) === -1) {
-            console.warn('[Grid] Grade ' + this.gridMode + ' inválida para ' + visibleChannels.length + ' câmeras (capacidade menor que visíveis). Forçando auto.');
-            this.gridMode = 'auto';
-            localStorage.setItem('dvr_grid_mode', 'auto');
-        }
-
-        var gridSpec;
-        if (this.gridMode === 'auto') {
-            gridSpec = this.calculateOptimalGrid(visibleChannels.length);
-        } else {
-            var cols = parseInt(this.gridMode.charAt(0), 10);
-            gridSpec = { layout: this.gridMode, cols: cols, capacity: cols * cols };
-        }
+        var gridSpec = this.getCurrentGridSpec();
 
         this.currentLayout = gridSpec.layout;
         this.currentGridCols = gridSpec.cols;
         this.currentGridCapacity = gridSpec.capacity;
 
+        var totalPages = Math.ceil(visibleChannels.length / gridSpec.capacity);
+        if (totalPages < 1) totalPages = 1;
+        if (this.currentPage >= totalPages) this.currentPage = 0;
+        if (this.currentPage < 0) this.currentPage = 0;
+
+        var startIndex = this.currentPage * gridSpec.capacity;
+        var pageChannels = visibleChannels.slice(startIndex, startIndex + gridSpec.capacity);
+
         grid.className = 'camera-grid layout-' + this.currentLayout;
         grid.innerHTML = '';
+
+        // Atualiza indicador de paginação no cabeçalho
+        var pagePill = document.getElementById('pagination-pill');
+        if (pagePill) {
+            if (totalPages > 1) {
+                pagePill.style.display = 'inline-block';
+                pagePill.textContent = 'Pág. ' + (this.currentPage + 1) + '/' + totalPages;
+            } else {
+                pagePill.style.display = 'none';
+            }
+        }
 
         if (visibleChannels.length === 0) {
             grid.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:22px;grid-column:1/-1;">Nenhuma câmera ativa encontrada.</div>';
             return;
         }
 
-        if (this.focusedIndex >= visibleChannels.length) {
+        if (this.focusedIndex >= pageChannels.length) {
             this.focusedIndex = 0;
         }
 
-        // Renderiza canais visíveis
-        visibleChannels.forEach(function(channel, index) {
+        // Renderiza APENAS as câmeras da página atual (no máximo gridSpec.capacity nós)
+        // Isso ELIMINA o problema de linhas implícitas ou telas espremidas em tiras finas
+        pageChannels.forEach(function(channel, index) {
             var card = document.createElement('div');
             var isFocused = (self.currentFocusZone === 'grid' && index === self.focusedIndex);
             var isOffline = !channel.isOnline;
@@ -493,8 +497,8 @@ class DvrTvApp {
             grid.appendChild(card);
         });
 
-        // Preenche slots vazios restantes com fundo estritamente preto
-        var emptyCount = gridSpec.capacity - visibleChannels.length;
+        // Preenche slots vazios restantes para garantir que a grade seja estritamente quadrada
+        var emptyCount = gridSpec.capacity - pageChannels.length;
         for (var k = 0; k < emptyCount; k++) {
             var emptySlot = document.createElement('div');
             emptySlot.className = 'camera-card empty-slot';
@@ -581,16 +585,21 @@ class DvrTvApp {
        MENU NETFLIX (DRAWER LATERAL)
        ========================================================================== */
     openDrawer() {
-        if (this.isFullScreen) return;
+        if (this.isFullScreen) {
+            this.closeFullScreen();
+        }
         this.isDrawerOpen = true;
         this.currentFocusZone = 'drawer';
         this.drawerFocusIndex = 0;
 
         var wrap = document.getElementById('netflix-drawer-wrap');
-        if (wrap) wrap.style.display = 'flex';
+        if (wrap) {
+            wrap.style.display = 'flex';
+        }
 
         this.updateBarLabels();
         this.updateDrawerFocus();
+        this.wakeChrome();
         this.syncStateToServer();
     }
 
@@ -638,10 +647,12 @@ class DvrTvApp {
     }
 
     cycleGridMode() {
-        var allowed = this.getAllowedSquareGrids();
-        var idx = allowed.indexOf(this.gridMode);
-        var nextIdx = (idx + 1) % allowed.length;
-        this.gridMode = allowed[nextIdx];
+        var squareModes = ['auto', '1x1', '2x2', '3x3', '4x4', '5x5', '6x6'];
+        var idx = squareModes.indexOf(this.gridMode);
+        var nextIdx = (idx + 1) % squareModes.length;
+        this.gridMode = squareModes[nextIdx];
+        this.currentPage = 0;
+        this.focusedIndex = 0;
         localStorage.setItem('dvr_grid_mode', this.gridMode);
         this.renderGrid();
         this.updateBarLabels();
@@ -762,28 +773,28 @@ class DvrTvApp {
         }
         if (showOfflineSelect) showOfflineSelect.value = this.showOfflineCameras ? 'true' : 'false';
         if (gridModeSelect) {
-            var allowed = this.getAllowedSquareGrids();
             gridModeSelect.innerHTML = '';
             var optAuto = document.createElement('option');
             optAuto.value = 'auto';
             optAuto.textContent = 'Automática (Ideal para ' + this.getVisibleChannels().length + ' câmeras)';
             gridModeSelect.appendChild(optAuto);
 
-            var labels = {
-                '1x1': '1x1 (1 Câmera)',
-                '2x2': '2x2 (4 Câmeras)',
-                '3x3': '3x3 (9 Câmeras)',
-                '4x4': '4x4 (16 Câmeras)',
-                '5x5': '5x5 (25 Câmeras)',
-                '6x6': '6x6 (36 Câmeras)'
-            };
-            for (var i = 1; i < allowed.length; i++) {
+            var squareModes = [
+                { id: '1x1', label: '1x1 (1 Câmera por tela)' },
+                { id: '2x2', label: '2x2 (4 Câmeras por tela)' },
+                { id: '3x3', label: '3x3 (9 Câmeras por tela)' },
+                { id: '4x4', label: '4x4 (16 Câmeras por tela)' },
+                { id: '5x5', label: '5x5 (25 Câmeras por tela)' },
+                { id: '6x6', label: '6x6 (36 Câmeras por tela)' }
+            ];
+
+            squareModes.forEach(function(m) {
                 var opt = document.createElement('option');
-                opt.value = allowed[i];
-                opt.textContent = labels[allowed[i]] || allowed[i];
+                opt.value = m.id;
+                opt.textContent = m.label;
                 gridModeSelect.appendChild(opt);
-            }
-            gridModeSelect.value = (allowed.indexOf(this.gridMode) !== -1) ? this.gridMode : 'auto';
+            });
+            gridModeSelect.value = this.gridMode;
         }
         if (httpPortInput) httpPortInput.value = localStorage.getItem('dvr_http_port') || this.dvr.httpPort || 80;
         if (rtspPortInput) rtspPortInput.value = localStorage.getItem('dvr_rtsp_port') || this.dvr.rtspPort || 554;
@@ -1126,24 +1137,72 @@ class DvrTvApp {
             return;
         }
 
-        // 5. Grade de Câmeras
+        // 5. Grade de Câmeras com Paginação Manual Contínua e Abertura do Drawer
         if (this.currentFocusZone === 'grid') {
-            var visibleChannels = this.getVisibleChannels();
-            if (visibleChannels.length === 0) return;
+            var pageChannels = this.getCurrentPageChannels();
+            var totalOnPage = pageChannels.length;
+            if (totalOnPage === 0) return;
 
             var cols = this.currentGridCols || 4;
-            var total = visibleChannels.length;
+            var visibleChannels = this.getVisibleChannels();
+            var totalPages = Math.ceil(visibleChannels.length / this.currentGridCapacity);
+            if (totalPages < 1) totalPages = 1;
 
             switch (direction) {
-                case 'up':
-                    if (this.focusedIndex - cols >= 0) {
-                        this.focusedIndex -= cols;
+                case 'right':
+                    if (this.focusedIndex < totalOnPage - 1) {
+                        this.focusedIndex++;
+                    } else if (totalPages > 1) {
+                        // Última câmera da página: avança para a próxima página
+                        if (this.currentPage < totalPages - 1) {
+                            this.currentPage++;
+                            this.focusedIndex = 0;
+                            this.renderGrid();
+                            this.showToast('Página ' + (this.currentPage + 1) + ' de ' + totalPages, 1000);
+                            return;
+                        } else {
+                            // Última câmera da última página: volta para a página 1
+                            this.currentPage = 0;
+                            this.focusedIndex = 0;
+                            this.renderGrid();
+                            this.showToast('Página 1 de ' + totalPages, 1000);
+                            return;
+                        }
+                    }
+                    break;
+
+                case 'left':
+                    if (this.focusedIndex % cols === 0) {
+                        // Câmera na coluna mais à esquerda da grade
+                        if (this.focusedIndex === 0 && this.currentPage > 0) {
+                            // Primeira câmera de página subsequente: volta para página anterior
+                            this.currentPage--;
+                            this.renderGrid();
+                            var prevPageChannels = this.getCurrentPageChannels();
+                            this.focusedIndex = prevPageChannels.length - 1;
+                            this.updateCardFocus();
+                            this.showToast('Página ' + (this.currentPage + 1) + ' de ' + totalPages, 1000);
+                            return;
+                        } else {
+                            // Na borda esquerda da tela: ABRE O MENU LATERAL ESTILO NETFLIX!
+                            this.openDrawer();
+                            return;
+                        }
+                    } else if (this.focusedIndex > 0) {
+                        this.focusedIndex--;
                     }
                     break;
 
                 case 'down':
-                    if (this.focusedIndex + cols < total) {
+                    if (this.focusedIndex + cols < totalOnPage) {
                         this.focusedIndex += cols;
+                    } else if (this.focusedIndex === totalOnPage - 1 && totalPages > 1 && this.currentPage < totalPages - 1) {
+                        // Na câmera mais abaixo e mais à direita: avança para a próxima página
+                        this.currentPage++;
+                        this.focusedIndex = 0;
+                        this.renderGrid();
+                        this.showToast('Página ' + (this.currentPage + 1) + ' de ' + totalPages, 1000);
+                        return;
                     } else {
                         // Descer da última fileira passa o foco para a barra inferior
                         this.currentFocusZone = 'bottom-bar';
@@ -1163,15 +1222,18 @@ class DvrTvApp {
                     }
                     break;
 
-                case 'left':
-                    if (this.focusedIndex > 0) {
-                        this.focusedIndex--;
-                    }
-                    break;
-
-                case 'right':
-                    if (this.focusedIndex < total - 1) {
-                        this.focusedIndex++;
+                case 'up':
+                    if (this.focusedIndex - cols >= 0) {
+                        this.focusedIndex -= cols;
+                    } else if (this.focusedIndex === 0 && this.currentPage > 0) {
+                        // Subir da primeira câmera vai para a página anterior
+                        this.currentPage--;
+                        this.renderGrid();
+                        var prevCh = this.getCurrentPageChannels();
+                        this.focusedIndex = prevCh.length - 1;
+                        this.updateCardFocus();
+                        this.showToast('Página ' + (this.currentPage + 1) + ' de ' + totalPages, 1000);
+                        return;
                     }
                     break;
             }
@@ -1396,6 +1458,8 @@ class DvrTvApp {
             selectedCameraName: selectedCh ? selectedCh.name : 'Camera 01',
             quality: this.streamQuality,
             gridMode: this.gridMode,
+            currentPage: this.currentPage + 1,
+            totalPages: Math.ceil(this.getVisibleChannels().length / (this.currentGridCapacity || 16)) || 1,
             allowedGrids: this.getAllowedSquareGrids(),
             showOffline: this.showOfflineCameras,
             bandwidth: this.dvr ? (this.dvr.bandwidthFormatted || '0 KB/s') : '0 KB/s',
