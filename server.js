@@ -4,11 +4,41 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
+let PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
 let defaultDvrHost = '192.168.100.2';
 let defaultDvrPort = 80;
 let defaultDvrUser = 'admin';
 let defaultDvrPass = 'jr130182';
+let dvrConfigured = false;
+
+const dataDir = path.join(__dirname, 'data');
+const dvrConfigPath = path.join(dataDir, 'dvr-config.json');
+try {
+    if (fs.existsSync(dvrConfigPath)) {
+        const saved = JSON.parse(fs.readFileSync(dvrConfigPath, 'utf8'));
+        if (saved && saved.ip && saved.username && saved.password) {
+            defaultDvrHost = saved.ip;
+            defaultDvrPort = parseInt(saved.httpPort || 80, 10);
+            defaultDvrUser = saved.username;
+            defaultDvrPass = saved.password;
+            dvrConfigured = true;
+        }
+    }
+} catch (err) {
+    console.warn('[DVR TV] Não foi possível carregar a configuração salva:', err.message);
+}
+
+function persistDvrConfig(config) {
+    fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(dvrConfigPath, JSON.stringify({
+        ip: config.ip,
+        username: config.username,
+        password: config.password,
+        httpPort: parseInt(config.httpPort || 80, 10),
+        rtspPort: parseInt(config.rtspPort || 554, 10),
+        updatedAt: new Date().toISOString()
+    }, null, 2), 'utf8');
+}
 
 // Detectar IP local primário (preferencialmente rede 192.168.100.x ou rede local não-interna)
 function getLocalIpAddress() {
@@ -200,6 +230,7 @@ const server = http.createServer((req, res) => {
             serverIp: LOCAL_IP,
             port: PORT,
             mobileUrl: 'http://' + LOCAL_IP + ':' + PORT + '/mobile',
+            configured: dvrConfigured,
             dvrHost: defaultDvrHost,
             dvrPort: defaultDvrPort
         };
@@ -232,6 +263,13 @@ const server = http.createServer((req, res) => {
                         defaultDvrPort = port;
                         defaultDvrUser = user;
                         defaultDvrPass = pass;
+                        dvrConfigured = true;
+                        try {
+                            persistDvrConfig({ ip: host, username: user, password: pass, httpPort: port, rtspPort: data.rtspPort });
+                        } catch (saveErr) {
+                            console.error('[DVR TV] Falha ao salvar configuração:', saveErr.message);
+                            result = { success: false, error: 'Conexão validada, mas não foi possível salvar a configuração na TV.' };
+                        }
                     }
                     res.writeHead(result.success ? 200 : 401, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify(result));
@@ -286,7 +324,8 @@ const server = http.createServer((req, res) => {
     // 3. API Mobile: Obter Estado Atual da TV
     if (pathname === '/api/mobile/state' && req.method === 'GET') {
         const token = req.headers['x-session-token'] || parsedUrl.searchParams.get('token');
-        if (!isValidSession(token)) {
+        const bodyMayCreateSession = !token;
+        if (!isValidSession(token) && cmdData?.command !== 'configure_dvr') {
             res.writeHead(401, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: 'Sessão expirada ou não autenticada' }));
             return;
@@ -303,23 +342,23 @@ const server = http.createServer((req, res) => {
     // 4. API Mobile: Enviar Comandos de Controle para a TV
     if (pathname === '/api/remote/command' && req.method === 'POST') {
         const token = req.headers['x-session-token'] || parsedUrl.searchParams.get('token');
-        if (!isValidSession(token)) {
-            res.writeHead(401, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: false, error: 'Sessão não autorizada' }));
-            return;
-        }
-
         let body = '';
         req.on('data', chunk => body += chunk);
         req.on('end', () => {
             try {
                 const cmdData = JSON.parse(body || '{}');
+                const isSetupCommand = cmdData.command === 'configure_dvr';
+                if (!isValidSession(token) && !isSetupCommand) {
+                    res.writeHead(401, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Sessão não autorizada' }));
+                    return;
+                }
                 const validCommands = [
                     'select_camera', 'open_fullscreen', 'close_fullscreen',
                     'next_camera', 'prev_camera', 'toggle_quality', 'set_quality',
                     'set_grid', 'toggle_offline', 'reconnect', 'open_settings',
                     'close_settings', 'open_drawer', 'close_drawer',
-                    'dpad_up', 'dpad_down', 'dpad_left', 'dpad_right', 'dpad_ok', 'dpad_back',
+                    'dpad_up', 'dpad_down', 'dpad_left', 'dpad_right', 'dpad_ok', 'dpad_back', 'go_home',
                     'configure_dvr'
                 ];
 
@@ -342,8 +381,12 @@ const server = http.createServer((req, res) => {
                     commandQueue = commandQueue.slice(-20);
                 }
 
+                const response = { success: true, message: 'Comando enfileirado com sucesso' };
+                if (cmdData.command === 'configure_dvr' && !token) {
+                    response.token = generateSessionToken('mobile-configurator');
+                }
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ success: true, message: 'Comando enfileirado com sucesso' }));
+                res.end(JSON.stringify(response));
             } catch (err) {
                 res.writeHead(400, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: false, error: 'Erro ao processar comando' }));
@@ -514,8 +557,16 @@ const server = http.createServer((req, res) => {
     });
 });
 
+server.on('error', (err) => {
+    console.error(`[DVR TV] Não foi possível iniciar na porta ${PORT}: ${err.message}`);
+    if (err.code === 'EADDRINUSE') {
+        console.error(`[DVR TV] A porta ${PORT} já está ocupada. Feche o servidor antigo ou use PORT=8081.`);
+    }
+    process.exitCode = 1;
+});
+
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`[DVR TV] Servidor iniciado com sucesso!`);
+    console.log(`[DVR TV] Servidor iniciado com sucesso na porta ${PORT}!`);
     console.log(`[DVR TV] Painel TV / PC: http://localhost:${PORT}/ ou http://${LOCAL_IP}:${PORT}/`);
-    console.log(`[DVR TV] Controle Mobile: http://${LOCAL_IP}:${PORT}/mobile`);
+    console.log(`[DVR TV] Configuração Mobile: http://${LOCAL_IP}:${PORT}/mobile`);
 });

@@ -1099,6 +1099,27 @@ html, body {
     overflow-y: auto;
 }
 
+.drawer-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 64px;
+    margin-bottom: 4px;
+    padding: 8px;
+}
+
+.drawer-logo img {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+    border-radius: 10px;
+    filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.35));
+}
+
+#bottom-menu-bar {
+    display: none !important;
+}
+
 .drawer-item {
     background: rgba(30, 41, 59, 0.45);
     border: 2px solid transparent;
@@ -1251,6 +1272,12 @@ html, body {
     padding: 40px 20px !important;
 }
 
+.onboarding-screen.onboarding-hidden {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
 .onboarding-content-wrap {
     display: flex;
     flex-direction: column;
@@ -1374,6 +1401,12 @@ html, body {
     transition: opacity 0.3s ease;
 }
 
+.netflix-drawer-wrap.drawer-hidden {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
 .netflix-drawer-wrap .drawer-backdrop {
     display: none !important;
 }
@@ -1399,8 +1432,7 @@ html, body {
 }
 
 /* Quando o menu está selecionado / aberto (Anexo 2) ou no hover */
-.netflix-drawer-wrap.is-open .netflix-drawer,
-.netflix-drawer:hover {
+.netflix-drawer-wrap.is-open .netflix-drawer {
     width: 270px !important;
     background: rgba(8, 14, 23, 0.90) !important;
     border-right: 1px solid rgba(56, 189, 248, 0.28) !important;
@@ -1467,8 +1499,7 @@ html, body {
 }
 
 /* Revela os textos no menu selecionado (Anexo 2) */
-.netflix-drawer-wrap.is-open .drawer-item-title,
-.netflix-drawer:hover .drawer-item-title {
+.netflix-drawer-wrap.is-open .drawer-item-title {
     opacity: 1 !important;
     transform: translateX(0) !important;
 }
@@ -1494,6 +1525,21 @@ html, body {
     filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8)) !important;
 }
 
+/* Estado responsivo: a grade usa toda a tela recolhida e se adapta quando o menu abre. */
+.camera-grid {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin-left: 0 !important;
+    transition: width 0.28s ease, max-width 0.28s ease, margin-left 0.28s ease !important;
+}
+
+body.drawer-expanded .camera-grid,
+body:has(#netflix-drawer-wrap.is-open) .camera-grid {
+    width: calc(100vw - 270px) !important;
+    max-width: calc(100vw - 270px) !important;
+    margin-left: 270px !important;
+}
+
 .drawer-item-exit {
     margin-top: auto !important;
 }
@@ -1514,6 +1560,81 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* O QR Code precisa ficar acima do onboarding no primeiro acesso. */
+#qrcode-modal {
+    z-index: 700 !important;
+}
+
+/* No primeiro acesso, o QR Code ocupa a tela inteira em vez de aparecer como pop-up. */
+#qrcode-modal.qr-fullscreen-view {
+    z-index: 700 !important;
+    display: flex !important;
+    align-items: stretch;
+    justify-content: stretch;
+    background: #060b13;
+}
+
+#qrcode-modal.qr-fullscreen-view .modal-backdrop {
+    display: none;
+}
+
+#qrcode-modal.qr-fullscreen-view .modal-card {
+    width: 100vw;
+    max-width: none;
+    height: 100vh;
+    border: 0;
+    border-radius: 0;
+    background: #060b13;
+    box-shadow: none;
+}
+
+#qrcode-modal.qr-fullscreen-view .modal-header {
+    min-height: 72px;
+    padding: 0 48px;
+    background: #0b1421;
+    border-bottom: 1px solid rgba(125, 211, 252, .16);
+}
+
+#qrcode-modal.qr-fullscreen-view .modal-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#qrcode-modal.qr-fullscreen-view .qr-presentation {
+    width: min(900px, 82vw);
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 64px;
+    align-items: center;
+}
+
+#qrcode-modal.qr-fullscreen-view .qrcode-container {
+    width: 280px;
+    height: 280px;
+}
+
+#qrcode-modal.qr-fullscreen-view .qr-info-wrap h3 {
+    font-size: 30px;
+}
+
+#qrcode-modal.qr-fullscreen-view .qr-hint,
+#qrcode-modal.qr-fullscreen-view .qr-address-label,
+#qrcode-modal.qr-fullscreen-view .qr-notice {
+    font-size: 19px;
+}
+
+#qrcode-modal.qr-fullscreen-view .qr-address-url {
+    font-size: 25px;
+}
+
+#qrcode-modal.qr-fullscreen-view .modal-footer {
+    padding: 24px 48px;
+    background: #0b1421;
+    border-top: 1px solid rgba(125, 211, 252, .16);
 }
 
 .modal-backdrop {
@@ -1720,15 +1841,34 @@ html, body {
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0) 100%) !important;
     border: none !important;
     border-bottom: none !important;
-    z-index: 60 !important;
+    z-index: 600 !important;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    padding: 16px 36px 0 36px;
+    padding: 16px 36px 0 92px;
     opacity: 0;
     pointer-events: none;
     transform: translateY(-8px);
     transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.app-header.overlay-header .header-left {
+    position: absolute;
+    left: 50%;
+    top: 16px;
+    transform: translateX(-50%);
+    justify-content: center;
+    text-align: center;
+}
+
+/* Mantém o título fora da área ocupada pelo menu expandido. */
+body.drawer-expanded .app-header.overlay-header {
+    padding-left: 300px;
+}
+
+body.drawer-expanded .app-header.overlay-header .header-left {
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 .app-header.overlay-header.visible {
@@ -1747,6 +1887,11 @@ html, body {
     align-items: center;
     justify-content: center;
     box-shadow: 0 0 12px rgba(2, 132, 199, 0.5);
+}
+
+/* O título superior não repete a logo que já aparece no menu lateral. */
+.app-header .app-logo-badge {
+    display: none !important;
 }
 
 .connection-status-pill {

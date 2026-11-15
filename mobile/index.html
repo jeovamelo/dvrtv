@@ -21,8 +21,8 @@
 
         /* Cabeçalho Mobile com Banda e Status */
         header.mobile-header {
-            background: linear-gradient(180deg, #131c2e 0%, #0b0f17 100%);
-            border-bottom: 1px solid #1e293b;
+            background: #070b14;
+            border-bottom: 2px solid #334155;
             padding: 14px 18px;
             display: flex;
             align-items: center;
@@ -52,10 +52,7 @@
             font-weight: 800;
             color: #ffffff;
         }
-        .header-subtitle {
-            font-size: 11px;
-            color: #94a3b8;
-        }
+        .header-subtitle { display: none; }
         .header-status-pill {
             display: flex;
             align-items: center;
@@ -144,8 +141,8 @@
 
         /* D-Pad Virtual */
         .dpad-section {
-            background: #131c2e;
-            border: 1px solid #1e293b;
+            background: #111b2e;
+            border: 2px solid #475569;
             border-radius: 18px;
             padding: 24px 16px;
             display: flex;
@@ -162,9 +159,9 @@
         }
         .dpad-btn {
             position: absolute;
-            background: #1e293b;
+            background: #24344d;
             color: #f8fafc;
-            border: 2px solid #334155;
+            border: 2px solid #64748b;
             font-size: 22px;
             font-weight: 800;
             cursor: pointer;
@@ -233,9 +230,9 @@
             width: 100%;
         }
         .action-btn {
-            background: #1e293b;
+            background: #24344d;
             color: #f1f5f9;
-            border: 1px solid #334155;
+            border: 2px solid #64748b;
             border-radius: 12px;
             padding: 15px 12px;
             font-size: 14px;
@@ -252,10 +249,30 @@
             transform: scale(0.96);
             background: #334155;
         }
+        .mobile-icon {
+            display: inline-flex;
+            width: 100%;
+            min-height: 28px;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            line-height: 1;
+            color: #ffffff;
+            font-weight: 800;
+        }
+        .mobile-icon svg {
+            width: 30px;
+            height: 30px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
         .action-btn.btn-back {
-            background: rgba(239, 68, 68, 0.15);
-            border-color: rgba(239, 68, 68, 0.4);
-            color: #fca5a5;
+            background: #641f2a;
+            border-color: #fb7185;
+            color: #ffffff;
         }
         .action-btn.btn-quality {
             background: rgba(234, 179, 8, 0.15);
@@ -268,10 +285,38 @@
             color: #6ee7b7;
         }
         .action-btn.btn-settings {
-            background: rgba(56, 189, 248, 0.15);
-            border-color: rgba(56, 189, 248, 0.4);
-            color: #7dd3fc;
+            background: #075985;
+            border-color: #38bdf8;
+            color: #ffffff;
         }
+        .action-btn.btn-reconnect {
+            background: #7f1d1d;
+            border-color: #ef4444;
+            color: #ffffff;
+        }
+        .icon-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .icon-action {
+            min-height: 58px;
+            padding: 10px;
+            background: #24344d;
+            color: #ffffff;
+            border: 2px solid #64748b;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .icon-action:active { background: #0284c7; border-color: #67e8f9; }
+        .icon-action svg { width: 28px; height: 28px; stroke: currentColor; fill: none; stroke-width: 2; }
+        .icon-action.icon-grid { background: #14532d; border-color: #22c55e; color: #ffffff; }
+        .icon-action.icon-quality { background: #713f12; border-color: #facc15; color: #ffffff; }
+        .icon-action.icon-settings { background: #075985; border-color: #38bdf8; color: #ffffff; }
 
         /* Modal de Configurações no Celular */
         .mobile-modal-overlay {
@@ -284,21 +329,21 @@
             backdrop-filter: blur(8px);
             z-index: 500;
             display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
+            align-items: stretch;
+            justify-content: stretch;
+            padding: 0;
         }
         .mobile-modal-card {
             box-sizing: border-box;
             background: #131c2e;
-            border: 1px solid #1e293b;
-            border-radius: 16px;
-            padding: 24px 20px;
+            border: 0;
+            border-radius: 0;
+            padding: 20px;
             width: 100%;
-            max-width: 420px;
-            max-height: 90vh;
+            max-width: none;
+            max-height: none;
             overflow-y: auto;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7);
+            box-shadow: none;
         }
         .modal-header-row {
             display: flex;
@@ -314,12 +359,14 @@
             color: #ffffff;
         }
         .btn-modal-close {
-            background: none;
-            border: none;
-            color: #94a3b8;
-            font-size: 20px;
+            background: #b91c1c;
+            border: 2px solid #f87171;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 800;
+            border-radius: 10px;
             cursor: pointer;
-            padding: 4px;
+            padding: 10px 14px;
         }
         .form-group {
             margin-bottom: 14px;
@@ -398,26 +445,10 @@
                 <div class="header-subtitle">Controle Remoto Samsung TV</div>
             </div>
         </div>
-        <div class="header-status-pill">
-            <span id="sync-dot" class="status-dot"></span>
-            <span id="sync-label">Conectado</span>
-            <span id="sync-bandwidth" class="bandwidth-tag">• 0 KB/s</span>
-        </div>
     </header>
 
     <div class="container">
         <!-- Status Atual da TV -->
-        <div class="tv-status-card">
-            <div class="tv-info-left">
-                <h3>Visualização na TV</h3>
-                <div id="tv-current-view" class="tv-view-name">Grade 4x4</div>
-            </div>
-            <div class="tv-badges">
-                <span id="badge-quality" class="pill-badge pill-fluido">Fluido</span>
-                <span id="badge-grid" class="pill-badge pill-grid">Auto</span>
-            </div>
-        </div>
-
         <!-- D-Pad Virtual Principal -->
         <div class="dpad-section">
             <div class="dpad-container">
@@ -430,26 +461,28 @@
 
             <!-- Botões de Ação Rápida -->
             <div class="remote-actions-grid">
-                <button class="action-btn btn-side-drawer" onclick="sendCommand('open_drawer')">
-                    <span>☰ Menu Lateral</span>
-                </button>
                 <button class="action-btn btn-back" onclick="sendCommand('dpad_back')">
-                    <span>🔙 Voltar</span>
-                </button>
-                <button class="action-btn btn-quality" onclick="sendCommand('toggle_quality')">
-                    <span>⚡ HD / Fluido</span>
-                </button>
-                <button class="action-btn btn-grid" onclick="cycleSquareGrid()">
-                    <span>🔲 Mudar Grade</span>
+                    <span class="mobile-icon" title="Voltar" aria-label="Voltar"><svg viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5"/><path d="M4 12h11a5 5 0 0 1 5 5v1"/></svg></span>
                 </button>
                 <button class="action-btn" onclick="sendCommand('toggle_offline')">
-                    <span>👁️ Sem Sinal</span>
+                    <span class="mobile-icon" title="Sem sinal" aria-label="Sem sinal"><svg viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M6 6.2C4.2 7.4 3 9.2 2 12c1.2 3.5 5 7 10 7 1.5 0 2.8-.3 4-.9"/><path d="M10.7 5.1C11.1 5 11.5 5 12 5c5 0 8.8 3.5 10 7-.4 1.2-1.1 2.4-2.1 3.4"/></svg></span>
                 </button>
-                <button class="action-btn btn-settings" onclick="openMobileSettings()">
-                    <span>⚙️ Configurações</span>
+                <button class="action-btn btn-quality" onclick="sendCommand('toggle_quality')">
+                    <span class="mobile-icon" title="Qualidade / HD" aria-label="Qualidade / HD"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9v6m4-6v6m-4-3h4m3-3v6h2a3 3 0 0 0 0-6h-2z"/></svg></span>
                 </button>
-                <button class="action-btn" onclick="sendCommand('reconnect')">
-                    <span>🔄 Reconectar DVR</span>
+                <button class="action-btn btn-reconnect" onclick="sendCommand('reconnect')">
+                    <span class="mobile-icon" title="Reconectar DVR" aria-label="Reconectar DVR"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14-4L4 9"/><path d="M4 4v5h5"/><path d="M4 13a8 8 0 0 0 14 4l2-2"/><path d="M20 20v-5h-5"/></svg></span>
+                </button>
+            </div>
+            <div class="icon-actions" aria-label="Atalhos de visualização">
+                <button class="icon-action" title="Início" aria-label="Início" onclick="sendCommand('go_home')">
+                    <svg viewBox="0 0 24 24"><path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3z"/></svg>
+                </button>
+                <button class="icon-action icon-grid" title="Grade" aria-label="Grade" onclick="cycleSquareGrid()">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                </button>
+                <button class="icon-action icon-settings" title="Configurações" aria-label="Configurações" onclick="openMobileSettings()">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 15l2 1-2 3-2-1a7 7 0 0 1-2 1l-.3 2h-3.5l-.3-2a7 7 0 0 1-2-1l-2 1-2-3 2-1a7 7 0 0 1 0-2l-2-1 2-3 2 1a7 7 0 0 1 2-1l.3-2h3.5l.3 2a7 7 0 0 1 2 1l2-1 2 3-2 1a7 7 0 0 1 0 2z"/></svg>
                 </button>
             </div>
         </div>
@@ -460,7 +493,7 @@
         <div class="mobile-modal-card">
                         <div class="modal-header-row">
                 <h2><img src="/images/logo.png" style="width:24px;height:24px;border-radius:6px;vertical-align:middle;margin-right:8px;"> Configurações do DVR</h2>
-                <button class="btn-modal-close" onclick="closeMobileSettings()">✕</button>
+                <button class="btn-modal-close" onclick="closeMobileSettings()">← Voltar</button>
             </div>
 
             <div id="m-cfg-status" class="m-status-banner" style="display:none; padding:12px 16px; border-radius:8px; font-size:13px; margin-bottom:16px; font-weight:600; line-height:1.4;"></div>
@@ -539,6 +572,16 @@
             setTimeout(() => toast.classList.remove('show'), 2000);
         }
 
+        function setConfigCookie(name, value) {
+            document.cookie = name + '=' + encodeURIComponent(value || '') + '; Max-Age=31536000; Path=/; SameSite=Lax';
+        }
+
+        function getConfigCookie(name) {
+            const prefix = name + '=';
+            const item = document.cookie.split('; ').find(row => row.indexOf(prefix) === 0);
+            return item ? decodeURIComponent(item.slice(prefix.length)) : '';
+        }
+
         async function handleLogin(e) {
             e.preventDefault();
             const user = document.getElementById('login-user').value.trim();
@@ -570,9 +613,39 @@
             }
         }
 
+        async function ensureSession() {
+            if (sessionToken) {
+                try {
+                    const stateRes = await fetch('/api/mobile/state', {
+                        headers: { 'x-session-token': sessionToken }, cache: 'no-store'
+                    });
+                    if (stateRes.ok) return true;
+                } catch (err) {}
+                sessionToken = '';
+                localStorage.removeItem('mobile_session_token');
+            }
+
+            const user = localStorage.getItem('m_dvr_user') || getConfigCookie('dvr_user') || '';
+            const pass = localStorage.getItem('m_dvr_pwd') || getConfigCookie('dvr_pwd') || '';
+            if (!user || !pass) return false;
+            try {
+                const res = await fetch('/api/mobile/login', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass }), cache: 'no-store'
+                });
+                const data = await res.json();
+                if (data.success && data.token) {
+                    sessionToken = data.token;
+                    localStorage.setItem('mobile_session_token', sessionToken);
+                    return true;
+                }
+            } catch (err) {}
+            return false;
+        }
+
         async function sendCommand(cmd, channelId, value) {
-            if (!sessionToken) {
-                document.getElementById('login-modal').style.display = 'flex';
+            if (cmd !== 'configure_dvr' && !(await ensureSession())) {
+                showToast('Configure o DVR antes de enviar comandos');
                 return;
             }
 
@@ -589,8 +662,16 @@
                 if (res.status === 401) {
                     sessionToken = '';
                     localStorage.removeItem('mobile_session_token');
-                    document.getElementById('login-modal').style.display = 'flex';
+                    showToast('Sessão renovada. Toque novamente.');
                     return;
+                }
+
+                const data = await res.json().catch(() => ({}));
+                if (data.token) {
+                    sessionToken = data.token;
+                    localStorage.setItem('mobile_session_token', sessionToken);
+                    document.getElementById('login-modal').style.display = 'none';
+                    startStatePolling();
                 }
 
                 showToast('Comando enviado');
@@ -607,11 +688,11 @@
         }
 
                 function openMobileSettings() {
-            document.getElementById('m-cfg-ip').value = localStorage.getItem('m_dvr_ip') || '';
-            document.getElementById('m-cfg-user').value = localStorage.getItem('m_dvr_user') || '';
-            document.getElementById('m-cfg-pwd').value = localStorage.getItem('m_dvr_pwd') || '';
-            document.getElementById('m-cfg-http-port').value = localStorage.getItem('m_dvr_http_port') || '80';
-            document.getElementById('m-cfg-rtsp-port').value = localStorage.getItem('m_dvr_rtsp_port') || '554';
+            document.getElementById('m-cfg-ip').value = localStorage.getItem('m_dvr_ip') || getConfigCookie('dvr_ip') || '';
+            document.getElementById('m-cfg-user').value = localStorage.getItem('m_dvr_user') || getConfigCookie('dvr_user') || '';
+            document.getElementById('m-cfg-pwd').value = localStorage.getItem('m_dvr_pwd') || getConfigCookie('dvr_pwd') || '';
+            document.getElementById('m-cfg-http-port').value = localStorage.getItem('m_dvr_http_port') || getConfigCookie('dvr_http_port') || '80';
+            document.getElementById('m-cfg-rtsp-port').value = localStorage.getItem('m_dvr_rtsp_port') || getConfigCookie('dvr_rtsp_port') || '554';
 
             const banner = document.getElementById('m-cfg-status');
             if (banner) {
@@ -709,6 +790,12 @@
                 localStorage.setItem('m_dvr_http_port', httpPort);
                 localStorage.setItem('m_dvr_rtsp_port', rtspPort);
                 localStorage.setItem('m_dvr_offline', offline);
+                setConfigCookie('dvr_ip', ip);
+                setConfigCookie('dvr_user', user);
+                setConfigCookie('dvr_pwd', pwd);
+                setConfigCookie('dvr_http_port', httpPort);
+                setConfigCookie('dvr_rtsp_port', rtspPort);
+                setConfigCookie('dvr_offline', offline);
 
                 // Envia comando para a TV configurar o DVR e abrir as câmeras imediatamente
                 await sendCommand('configure_dvr', null, {
@@ -782,24 +869,28 @@
         function updateUIWithTvState(state) {
             latestTvState = state;
             const viewEl = document.getElementById('tv-current-view');
-            if (state.currentView === 'fullscreen') {
-                viewEl.textContent = 'Câmera Única: ' + (state.selectedCameraName || ('CH ' + state.selectedChannelId));
-            } else {
-                const pageInfo = (state.totalPages && state.totalPages > 1) ? (' - Pág. ' + (state.currentPage || 1) + '/' + state.totalPages) : '';
-                viewEl.textContent = 'Grade (' + (state.gridMode || 'Auto').toUpperCase() + ')' + pageInfo;
+            if (viewEl) {
+                if (state.currentView === 'fullscreen') {
+                    viewEl.textContent = 'Câmera Única: ' + (state.selectedCameraName || ('CH ' + state.selectedChannelId));
+                } else {
+                    const pageInfo = (state.totalPages && state.totalPages > 1) ? (' - Pág. ' + (state.currentPage || 1) + '/' + state.totalPages) : '';
+                    viewEl.textContent = 'Grade (' + (state.gridMode || 'Auto').toUpperCase() + ')' + pageInfo;
+                }
             }
 
             const qEl = document.getElementById('badge-quality');
-            if (state.quality === 'main') {
-                qEl.className = 'pill-badge pill-hd';
-                qEl.textContent = 'HD 1080P';
-            } else {
-                qEl.className = 'pill-badge pill-fluido';
-                qEl.textContent = 'FLUIDO';
+            if (qEl) {
+                if (state.quality === 'main') {
+                    qEl.className = 'pill-badge pill-hd';
+                    qEl.textContent = 'HD 1080P';
+                } else {
+                    qEl.className = 'pill-badge pill-fluido';
+                    qEl.textContent = 'FLUIDO';
+                }
             }
 
             const gEl = document.getElementById('badge-grid');
-            gEl.textContent = (state.gridMode || 'Auto').toUpperCase();
+            if (gEl) gEl.textContent = (state.gridMode || 'Auto').toUpperCase();
 
             const idx = squareGrids.indexOf(state.gridMode);
             if (idx !== -1) currentGridIdx = idx;
@@ -811,12 +902,30 @@
             pollTimer = setInterval(fetchTvState, 1500);
         }
 
-        if (sessionToken) {
-            document.getElementById('login-modal').style.display = 'none';
-            startStatePolling();
-        } else {
-            document.getElementById('login-modal').style.display = 'flex';
+        async function initializeMobilePage() {
+            try {
+                const infoRes = await fetch('/api/info', { cache: 'no-store' });
+                const info = await infoRes.json();
+                if (!info.configured) {
+                    document.getElementById('login-modal').style.display = 'none';
+                    openMobileSettings();
+                    return;
+                }
+            } catch (err) {
+                // Mantém o login como fallback se o servidor não responder.
+            }
+
+            if (await ensureSession()) {
+                const login = document.getElementById('login-modal');
+                if (login) login.style.display = 'none';
+                startStatePolling();
+            } else {
+                const login = document.getElementById('login-modal');
+                if (login) login.style.display = 'flex';
+            }
         }
+
+        initializeMobilePage();
     </script>
 </body>
 </html>
