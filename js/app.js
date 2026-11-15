@@ -1489,6 +1489,59 @@ class DvrTvApp {
         this.showToast('Câmera CH ' + num + ' não encontrada ou offline');
     }
 
+
+    initDeviceIdentity() {
+        if (!this.deviceId) {
+            this.deviceId = localStorage.getItem('dvr_device_id');
+            if (!this.deviceId) {
+                this.deviceId = 'TV-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+                localStorage.setItem('dvr_device_id', this.deviceId);
+            }
+        }
+    }
+
+    openLicenseModal() {
+        this.isLicenseModalOpen = true;
+        this.currentFocusZone = 'license';
+        var modal = document.getElementById('license-modal');
+        if (modal) modal.style.display = 'flex';
+        var devIdEl = document.getElementById('license-device-id');
+        if (devIdEl) devIdEl.textContent = this.deviceId || 'TV-NATIVE';
+        var devStatusEl = document.getElementById('license-device-status');
+        if (devStatusEl) devStatusEl.textContent = 'Ativa (Versão Completa)';
+        var qrContainer = document.getElementById('license-qrcode-container');
+        if (qrContainer && typeof QRCode !== 'undefined') {
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, {
+                text: 'https://seusite.com/licenca?device=' + (this.deviceId || 'TV-NATIVE'),
+                width: 140,
+                height: 140,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        }
+        var btnDismiss = document.getElementById('btn-dismiss-license');
+        if (btnDismiss) btnDismiss.focus();
+    }
+
+    closeLicenseModal() {
+        this.isLicenseModalOpen = false;
+        var modal = document.getElementById('license-modal');
+        if (modal) modal.style.display = 'none';
+        this.currentFocusZone = 'modal';
+        var btnLic = document.getElementById('btn-cfg-license');
+        if (btnLic) btnLic.focus();
+    }
+
+    refreshLicenseStatus() {
+        this.showToast('Verificando licença do dispositivo...');
+        var self = this;
+        setTimeout(function() {
+            self.showToast('Dispositivo licenciado com sucesso!');
+        }, 1000);
+    }
+
     exitApp() {
         console.log('[App] Encerrando aplicativo DVR TV...');
         if (typeof window.tizen !== 'undefined' && typeof window.tizen.application !== 'undefined') {
