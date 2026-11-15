@@ -360,6 +360,22 @@ class DvrTvApp {
         var btnToggleAdv = document.getElementById('btn-toggle-advanced');
         if (btnToggleAdv) btnToggleAdv.addEventListener('click', function() { self.toggleAdvancedSection(); });
 
+                var btnTogglePwd = document.getElementById('btn-toggle-pwd');
+        if (btnTogglePwd) {
+            btnTogglePwd.addEventListener('click', function() {
+                var pwdIn = document.getElementById('cfg-pwd');
+                if (pwdIn) {
+                    if (pwdIn.type === 'password') {
+                        pwdIn.type = 'text';
+                        btnTogglePwd.textContent = '🙈';
+                    } else {
+                        pwdIn.type = 'password';
+                        btnTogglePwd.textContent = '👁️';
+                    }
+                }
+            });
+        }
+
         var btnSave = document.getElementById('btn-save-settings');
         if (btnSave) btnSave.addEventListener('click', function() { self.saveSettings(); });
 
@@ -1009,30 +1025,24 @@ class DvrTvApp {
         this.refreshModalFocusList();
     }
 
-    refreshModalFocusList() {
+        refreshModalFocusList() {
         var elements = [
             document.getElementById('cfg-ip'),
             document.getElementById('cfg-user'),
             document.getElementById('cfg-pwd'),
+            document.getElementById('cfg-http-port'),
+            document.getElementById('cfg-rtsp-port'),
+            document.getElementById('cfg-server-url'),
             document.getElementById('cfg-quality'),
-            document.getElementById('cfg-show-offline'),
             document.getElementById('cfg-grid-mode'),
-            document.getElementById('btn-cfg-reconnect'),
+            document.getElementById('cfg-show-offline'),
             document.getElementById('btn-cfg-mobile'),
+            document.getElementById('btn-cfg-reconnect'),
             document.getElementById('btn-cfg-license'),
-            document.getElementById('btn-toggle-advanced')
+            document.getElementById('btn-default-settings'),
+            document.getElementById('btn-cancel-settings'),
+            document.getElementById('btn-save-settings')
         ];
-
-        if (this.isAdvancedOpen) {
-            elements.push(document.getElementById('cfg-http-port'));
-            elements.push(document.getElementById('cfg-rtsp-port'));
-            elements.push(document.getElementById('cfg-server-url'));
-        }
-
-        elements.push(document.getElementById('btn-save-settings'));
-        elements.push(document.getElementById('btn-default-settings'));
-        elements.push(document.getElementById('btn-cancel-settings'));
-
         this.modalFocusableElements = elements.filter(function(el) { return el !== null; });
     }
 
@@ -1043,6 +1053,9 @@ class DvrTvApp {
             if (i === this.modalFocusIndex) {
                 el.classList.add('focused');
                 el.focus();
+                if (typeof el.scrollIntoView === 'function') {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
             } else {
                 el.classList.remove('focused');
             }

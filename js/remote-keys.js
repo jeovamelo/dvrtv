@@ -1,5 +1,6 @@
-﻿/**
+/**
  * Gerenciador de Controle Remoto Samsung Smart TV (Tizen) e Teclado de PC
+ * Permite digitação completa em campos de input no PC sem conflitos.
  */
 class RemoteControlManager {
     constructor(appCallbacks) {
@@ -20,7 +21,7 @@ class RemoteControlManager {
                 try {
                     window.tizen.tvinputdevice.registerKey(keyName);
                 } catch (e) {
-                    // ignorar
+                    // ignorar em navegadores comuns
                 }
             });
         }
@@ -30,7 +31,45 @@ class RemoteControlManager {
         var self = this;
         window.addEventListener('keydown', function(e) {
             var keyCode = e.keyCode;
+            var target = e.target || document.activeElement;
+            var isTextInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+            var isSelect = target && target.tagName === 'SELECT';
 
+            // ==================================================================
+            // REGRA CRÍTICA PARA DIGITAÇÃO EM CAMPOS DE TEXTO NO PC:
+            // Quando o usuário está com foco em um <input>, permite TODAS as teclas:
+            // letras (incluindo R, G, Y, B), números 0-9, pontos, símbolos, Backspace,
+            // Delete e setas para mover o cursor, SEM BLOQUEIOS OU ATALHOS DA TV!
+            // ==================================================================
+            if (isTextInput) {
+                if (keyCode === 27) { // Esc fecha a tela
+                    if (self.callbacks.onBack) self.callbacks.onBack();
+                    e.preventDefault();
+                    return;
+                }
+                if (keyCode === 13) { // Enter salva
+                    if (self.callbacks.onEnter) self.callbacks.onEnter();
+                    return;
+                }
+                // Permite toda e qualquer digitação no input livremente!
+                return;
+            }
+
+            if (isSelect) {
+                if (keyCode === 27) { // Esc fecha
+                    if (self.callbacks.onBack) self.callbacks.onBack();
+                    e.preventDefault();
+                    return;
+                }
+                // No select, permite usar setas para navegar entre opções
+                if (keyCode === 38 || keyCode === 40) {
+                    return;
+                }
+            }
+
+            // ==================================================================
+            // CONTROLE REMOTO SAMSUNG / NAVEGAÇÃO POR SETAS NO SISTEMA
+            // ==================================================================
             switch (keyCode) {
                 case 38: // Seta Cima
                     if (self.callbacks.onUp) self.callbacks.onUp();
@@ -55,7 +94,7 @@ class RemoteControlManager {
                     break;
 
                 case 10009: // Return (Tizen)
-                case 8:     // Backspace
+                case 8:     // Backspace no app
                 case 27:    // Esc
                     if (self.callbacks.onBack) self.callbacks.onBack();
                     e.preventDefault();
@@ -101,6 +140,7 @@ class RemoteControlManager {
                     break;
 
                 default:
+                    // Números 0-9 apenas fora de inputs de texto
                     if (keyCode >= 48 && keyCode <= 57) {
                         var num = keyCode - 48;
                         if (self.callbacks.onNumber) self.callbacks.onNumber(num);

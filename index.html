@@ -344,133 +344,196 @@
         </div>
     </div>
 
-    <!-- Modal de Configurações do DVR -->
-    <div id="settings-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-backdrop" id="settings-backdrop"></div>
-        <div class="modal-card">
-            <div class="modal-header">
-                <div class="modal-title-wrap">
-                    <span class="modal-icon">⚙️</span>
-                    <h2>Configurações do DVR</h2>
+        <!-- TELA INTEIRA DE CONFIGURAÇÕES DO DVR (Sem Pop-up, Sem Truncagem, Design Fluido e Responsivo) -->
+    <div id="settings-modal" class="settings-full-page-view" style="display: none;">
+        <div class="settings-full-page-container">
+            <header class="settings-full-header">
+                <div class="settings-header-left">
+                    <img src="images/logo.png" class="settings-header-logo" alt="DVR TV">
+                    <div class="settings-header-titles">
+                        <h1>Configurações do DVR</h1>
+                        <span>Ajuste os parâmetros de conexão, rede e exibição das câmeras</span>
+                    </div>
                 </div>
-                <button type="button" id="btn-close-modal" class="btn-close-modal" title="Fechar (Voltar)" tabindex="0">✕</button>
-            </div>
+                <button type="button" id="btn-close-modal" class="settings-header-back-btn" title="Voltar (Esc)" tabindex="0">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    <span>Voltar</span>
+                </button>
+            </header>
 
-            <div class="modal-body">
+            <main class="settings-full-body">
                 <div id="cfg-status-banner" class="cfg-status-banner" style="display: none;"></div>
-                <div class="form-group">
-                    <label for="cfg-ip">Endereço IP do DVR</label>
-                    <input type="text" id="cfg-ip" class="form-input" placeholder="ex: 192.168.1.100" autocomplete="off" spellcheck="false" tabindex="0">
-                    <span class="input-hint">Endereço IP local do gravador na sua rede</span>
-                </div>
 
-                <div class="form-row">
-                    <div class="form-group flex-1">
-                        <label for="cfg-user">Usuário</label>
-                        <input type="text" id="cfg-user" class="form-input" placeholder="ex: admin" autocomplete="off" spellcheck="false" tabindex="0">
-                    </div>
-                    <div class="form-group flex-1">
-                        <label for="cfg-pwd">Senha</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="cfg-pwd" class="form-input" placeholder="Senha do DVR" autocomplete="off" tabindex="0">
-                            <span class="password-lock-icon" title="Senha protegida">🔒</span>
+                <div class="settings-grid-layout">
+                    <!-- Bloco 1: Conexão DVR -->
+                    <section class="settings-panel-card">
+                        <div class="panel-card-header">
+                            <span class="panel-card-icon">🌐</span>
+                            <div>
+                                <h2>Conexão com o Gravador (DVR)</h2>
+                                <p>Endereço IP e credenciais de acesso local</p>
+                            </div>
                         </div>
-                        <span class="input-hint">Digite apenas se desejar alterá-la</span>
-                    </div>
-                </div>
 
-                <div class="form-row">
-                                    <div class="form-row">
-                    <div class="form-group flex-1">
-                        <label for="cfg-quality">Qualidade Padrão</label>
-                        <select id="cfg-quality" class="form-input form-select" tabindex="0">
-                            <option value="sub">Fluido / Sub-stream (Rápido e Estável)</option>
-                            <option value="main">HD 1080p / Main-stream (Alta Resolução)</option>
-                        </select>
-                        <span class="input-hint">Resolução de inicialização do vídeo</span>
-                    </div>
-                </div>
+                        <div class="form-field-group">
+                            <label for="cfg-ip">Endereço IP do DVR</label>
+                            <input type="text" id="cfg-ip" class="form-input" placeholder="ex: 192.168.1.100" autocomplete="off" spellcheck="false" tabindex="0">
+                            <span class="input-hint">Endereço IP local do DVR na sua rede (ex: 192.168.100.2)</span>
+                        </div>
 
-                <div class="form-group flex-1">
-                        <label for="cfg-show-offline">Mostrar Câmeras Sem Sinal</label>
-                        <select id="cfg-show-offline" class="form-input form-select" tabindex="0">
-                            <option value="true">Sim (Mostrar todas as posições)</option>
-                            <option value="false">Não (Ocultar câmeras sem vídeo)</option>
-                        </select>
-                        <span class="input-hint">Quando "Não", recalcula a grade apenas com câmeras ativas</span>
-                    </div>
+                        <div class="form-row-duo">
+                            <div class="form-field-group flex-1">
+                                <label for="cfg-user">Usuário</label>
+                                <input type="text" id="cfg-user" class="form-input" placeholder="ex: admin" autocomplete="off" spellcheck="false" tabindex="0">
+                                <span class="input-hint">Usuário do DVR (padrão: admin)</span>
+                            </div>
 
-                    <div class="form-group flex-1">
-                        <label for="cfg-grid-mode">Modo de Grade (Apenas Quadradas)</label>
-                        <select id="cfg-grid-mode" class="form-input form-select" tabindex="0">
-                            <option value="auto">Automático (Quadrada ideal)</option>
-                            <option value="1x1">1x1 (1 Câmera)</option>
-                            <option value="2x2">2x2 (4 Câmeras)</option>
-                            <option value="3x3">3x3 (9 Câmeras)</option>
-                            <option value="4x4">4x4 (16 Câmeras)</option>
-                            <option value="5x5">5x5 (25 Câmeras)</option>
-                            <option value="6x6">6x6 (36 Câmeras)</option>
-                        </select>
-                        <span class="input-hint">Sempre com mesmo número de linhas e colunas</span>
-                    </div>
-                </div>
+                            <div class="form-field-group flex-1">
+                                <label for="cfg-pwd">Senha</label>
+                                <div class="password-wrapper">
+                                    <input type="password" id="cfg-pwd" class="form-input" placeholder="Senha do DVR" autocomplete="off" tabindex="0">
+                                    <button type="button" id="btn-toggle-pwd" class="btn-toggle-pwd" tabindex="-1" title="Mostrar/Ocultar Senha">👁️</button>
+                                </div>
+                                <span class="input-hint">Senha de acesso configurada no DVR</span>
+                            </div>
+                        </div>
+                    </section>
 
-                                <div class="settings-actions-group">
-                    <button type="button" id="btn-cfg-reconnect" class="cfg-action-btn" tabindex="0">
-                        <span>🔄 Reconectar ao DVR</span>
-                    </button>
-                    <button type="button" id="btn-cfg-mobile" class="cfg-action-btn" tabindex="0">
-                        <span>📱 Controlar pelo Celular (QR)</span>
-                    </button>
-                    <button type="button" id="btn-cfg-license" class="cfg-action-btn license-btn" tabindex="0">
-                        <span>🔑 Ativar / Ver Licença</span>
-                    </button>
-                </div>
+                    <!-- Bloco 2: Portas de Comunicação e Servidor -->
+                    <section class="settings-panel-card">
+                        <div class="panel-card-header">
+                            <span class="panel-card-icon">🔌</span>
+                            <div>
+                                <h2>Portas de Rede e Sincronização</h2>
+                                <p>Portas para comandos ISAPI e transmissão RTSP</p>
+                            </div>
+                        </div>
 
-                <div class="advanced-section">
-                    <button type="button" id="btn-toggle-advanced" class="btn-toggle-advanced" tabindex="0">
-                        <span id="advanced-arrow" class="advanced-arrow">▶</span>
-                        <span>Configurações Avançadas (Portas e Sincronização)</span>
-                    </button>
-
-                    <div id="advanced-fields" class="advanced-fields" style="display: none;">
-                        <div class="form-row">
-                            <div class="form-group flex-1">
+                        <div class="form-row-duo">
+                            <div class="form-field-group flex-1">
                                 <label for="cfg-http-port">Porta HTTP / Web</label>
-                                <input type="number" id="cfg-http-port" class="form-input" placeholder="80" min="1" max="65535" tabindex="0">
+                                <input type="number" id="cfg-http-port" class="form-input" placeholder="80" value="80" min="1" max="65535" tabindex="0">
                                 <span class="input-hint">Padrão: 80 (API ISAPI e fotos)</span>
                             </div>
-                            <div class="form-group flex-1">
+
+                            <div class="form-field-group flex-1">
                                 <label for="cfg-rtsp-port">Porta RTSP (Vídeo)</label>
-                                <input type="number" id="cfg-rtsp-port" class="form-input" placeholder="554" min="1" max="65535" tabindex="0">
-                                <span class="input-hint">Padrão: 554 (transmissão de vídeo)</span>
+                                <input type="number" id="cfg-rtsp-port" class="form-input" placeholder="554" value="554" min="1" max="65535" tabindex="0">
+                                <span class="input-hint">Padrão: 554 (transmissão ao vivo)</span>
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label for="cfg-server-url">Servidor Sync / Mobile</label>
+                        <div class="form-field-group">
+                            <label for="cfg-server-url">Servidor Sync / Celular</label>
                             <input type="text" id="cfg-server-url" class="form-input" placeholder="192.168.100.74:8080" autocomplete="off" spellcheck="false" tabindex="0">
-                            <span class="input-hint">Endereço IP do servidor de controle e QR Code</span>
+                            <span class="input-hint">Endereço IP do servidor de controle remoto móvel</span>
                         </div>
-                    </div>
-                </div>
-            </div>
+                    </section>
 
-            <div class="modal-footer">
-                <button type="button" id="btn-save-settings" class="modal-btn btn-primary" tabindex="0">
-                    <span>💾 Salvar e Reconectar</span>
-                </button>
-                <button type="button" id="btn-default-settings" class="modal-btn btn-secondary" tabindex="0">
-                    <span>🔄 Restaurar Padrões</span>
-                </button>
-                <button type="button" id="btn-cancel-settings" class="modal-btn btn-cancel" tabindex="0">
-                    <span>✕ Cancelar</span>
-                </button>
-            </div>
+                    <!-- Bloco 3: Preferências de Vídeo -->
+                    <section class="settings-panel-card">
+                        <div class="panel-card-header">
+                            <span class="panel-card-icon">📺</span>
+                            <div>
+                                <h2>Preferências de Vídeo e Grade</h2>
+                                <p>Qualidade de inicialização e disposição das câmeras</p>
+                            </div>
+                        </div>
+
+                        <div class="form-row-duo">
+                            <div class="form-field-group flex-1">
+                                <label for="cfg-quality">Qualidade de Vídeo Padrão</label>
+                                <select id="cfg-quality" class="form-input form-select" tabindex="0">
+                                    <option value="sub">Fluido / Sub-stream (Rápido e Estável)</option>
+                                    <option value="main">HD 1080p / Main-stream (Alta Resolução)</option>
+                                </select>
+                                <span class="input-hint">Fluido é recomendado para visualização em grade</span>
+                            </div>
+
+                            <div class="form-field-group flex-1">
+                                <label for="cfg-grid-mode">Modo de Grade Inicial</label>
+                                <select id="cfg-grid-mode" class="form-input form-select" tabindex="0">
+                                    <option value="auto">Automático (Quadrada ideal)</option>
+                                    <option value="1x1">1x1 (1 Câmera por tela)</option>
+                                    <option value="2x2">2x2 (4 Câmeras por tela)</option>
+                                    <option value="3x3">3x3 (9 Câmeras por tela)</option>
+                                    <option value="4x4">4x4 (16 Câmeras por tela)</option>
+                                    <option value="5x5">5x5 (25 Câmeras por tela)</option>
+                                    <option value="6x6">6x6 (36 Câmeras por tela)</option>
+                                </select>
+                                <span class="input-hint">Linhas e colunas rigorosamente iguais</span>
+                            </div>
+                        </div>
+
+                        <div class="form-field-group">
+                            <label for="cfg-show-offline">Câmeras Sem Sinal de Vídeo</label>
+                            <select id="cfg-show-offline" class="form-input form-select" tabindex="0">
+                                <option value="true">Mostrar Todas as Posições (inclusive sem sinal)</option>
+                                <option value="false">Ocultar Câmeras Sem Sinal (recalcula grade com ativas)</option>
+                            </select>
+                            <span class="input-hint">Quando desativado, remove posições pretas sem sinal</span>
+                        </div>
+                    </section>
+
+                    <!-- Bloco 4: Ações e Celular -->
+                    <section class="settings-panel-card">
+                        <div class="panel-card-header">
+                            <span class="panel-card-icon">📱</span>
+                            <div>
+                                <h2>Ações Rápidas e Controle Móvel</h2>
+                                <p>Sincronização com smartphone e licença</p>
+                            </div>
+                        </div>
+
+                        <div class="settings-action-cards-list">
+                            <button type="button" id="btn-cfg-mobile" class="settings-action-tile" tabindex="0">
+                                <span class="tile-icon">📱</span>
+                                <div class="tile-info">
+                                    <strong>Controlar pelo Celular (QR Code)</strong>
+                                    <span>Abra o controle remoto ou configure pelo celular</span>
+                                </div>
+                            </button>
+
+                            <button type="button" id="btn-cfg-reconnect" class="settings-action-tile" tabindex="0">
+                                <span class="tile-icon">🔄</span>
+                                <div class="tile-info">
+                                    <strong>Reconectar ao DVR</strong>
+                                    <span>Forçar nova autenticação e recarregar canais</span>
+                                </div>
+                            </button>
+
+                            <button type="button" id="btn-cfg-license" class="settings-action-tile tile-license" tabindex="0">
+                                <span class="tile-icon">🔑</span>
+                                <div class="tile-info">
+                                    <strong>Licença do Dispositivo</strong>
+                                    <span>Identificador único e status da ativação</span>
+                                </div>
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            </main>
+
+            <!-- Barra de Ações Fixa no Rodapé da Página -->
+            <footer class="settings-full-footer">
+                <div class="footer-action-left">
+                    <button type="button" id="btn-default-settings" class="settings-footer-btn btn-secondary" tabindex="0">
+                        <span>🔄 Restaurar Padrões</span>
+                    </button>
+                </div>
+                <div class="footer-action-right">
+                    <button type="button" id="btn-cancel-settings" class="settings-footer-btn btn-cancel" tabindex="0">
+                        <span>✕ Cancelar</span>
+                    </button>
+                    <button type="button" id="btn-save-settings" class="settings-footer-btn btn-primary" tabindex="0">
+                        <span>💾 Salvar e Conectar</span>
+                    </button>
+                </div>
+            </footer>
         </div>
     </div>
 
-        <!-- Modal: Ativação de Licença e Identificação da TV -->
+    <!-- Modal: Ativação de Licença e Identificação da TV -->
     <div id="license-modal" class="modal-overlay" style="display: none;">
         <div class="modal-backdrop" id="license-backdrop"></div>
         <div class="modal-card modal-license-card">
