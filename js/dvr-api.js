@@ -298,3 +298,5 @@ class DvrApiClient {
 }
 
 window.DvrApiClient = DvrApiClient;
+
+window.DvrApi = DvrApiClient;

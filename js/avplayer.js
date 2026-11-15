@@ -197,3 +197,5 @@ class TvStreamPlayer {
 }
 
 window.TvStreamPlayer = TvStreamPlayer;
+
+window.VideoPlayerManager = TvStreamPlayer;

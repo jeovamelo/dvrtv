@@ -11,7 +11,14 @@
 
 class DvrTvApp {
     constructor() {
-        this.dvr = new DvrApi();
+        var DvrClass = window.DvrApiClient || (typeof DvrApiClient !== 'undefined' ? DvrApiClient : null);
+        this.dvr = new DvrClass({
+            ip: localStorage.getItem('dvr_ip') || '192.168.100.2',
+            httpPort: parseInt(localStorage.getItem('dvr_http_port') || '80', 10),
+            rtspPort: parseInt(localStorage.getItem('dvr_rtsp_port') || '554', 10),
+            username: localStorage.getItem('dvr_user') || 'admin',
+            password: localStorage.getItem('dvr_pwd') || localStorage.getItem('dvr_pass') || 'jr130182'
+        });
         this.channels = [];
         this.currentLayout = '4x4';
         this.focusedIndex = 0;
@@ -55,7 +62,8 @@ class DvrTvApp {
 
         // Inicializar player de vídeo para a TV
         var container = document.getElementById('fullscreen-player-container');
-        this.player = new VideoPlayerManager(container);
+        var PlayerClass = window.TvStreamPlayer || (typeof TvStreamPlayer !== 'undefined' ? TvStreamPlayer : null);
+        this.player = new PlayerClass(container, this.dvr);
 
         // Detectar URL do servidor de sync / mobile
         await this.detectServerInfo();
@@ -342,7 +350,9 @@ class DvrTvApp {
        ========================================================================== */
     setupRemote() {
         var self = this;
-        this.remote = new RemoteControlManager({
+        var RemoteClass = window.RemoteControlManager || (typeof RemoteControlManager !== 'undefined' ? RemoteControlManager : null);
+        if (RemoteClass) {
+            this.remote = new RemoteClass({
             onUp: function() { self.handleNavigation('up'); },
             onDown: function() { self.handleNavigation('down'); },
             onLeft: function() { self.handleNavigation('left'); },
@@ -356,7 +366,8 @@ class DvrTvApp {
             onChannelUp: function() { self.nextCamera(); },
             onChannelDown: function() { self.prevCamera(); },
             onNumber: function(num) { self.handleNumber(num); }
-        });
+            });
+        }
     }
 
     /* ==========================================================================
@@ -940,7 +951,7 @@ class DvrTvApp {
         var fallbackSnapshotUrl = this.dvr.getSnapshotUrl(channel.id, snapshotStream);
 
         if (this.player) {
-            this.player.play(rtspUrl, channel.id, fallbackSnapshotUrl, this.dvr);
+            this.player.play(channel.id, (this.streamQuality === "main" ? 1 : 2));
         }
 
         this.syncStateToServer();
