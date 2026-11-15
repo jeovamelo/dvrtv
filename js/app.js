@@ -284,6 +284,18 @@ class DvrTvApp {
         if (btnBarHelp) btnBarHelp.addEventListener('click', function() { self.openHelpModal(); });
 
         // Itens do Menu Netflix (Drawer)
+                // Item Início do Menu
+        var drawerItemHome = document.getElementById('drawer-item-home');
+        if (drawerItemHome) {
+            drawerItemHome.addEventListener('click', function() {
+                self.closeDrawer();
+                self.currentPage = 0;
+                self.focusedIndex = 0;
+                self.updateCardFocus();
+                self.renderGrid();
+            });
+        }
+
         var drawerItemCameras = document.getElementById('drawer-item-cameras');
         if (drawerItemCameras) drawerItemCameras.addEventListener('click', function() { self.closeDrawer(); });
 

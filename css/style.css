@@ -1300,59 +1300,144 @@ html, body {
 .onboarding-option-title { font-size: 24px; font-weight: 750; }
 .onboarding-option-desc { font-size: 18px; color: #cbd5e1; }
 
-/* O rodapé antigo fica fora da composição; as ações vivem no trilho lateral. */
-.bottom-menu-bar { display: none !important; }
-
+/* ==========================================================================
+   MENU LATERAL: TRILHO RECOLHIDO (ANEXO 1) E EXPANDIDO COMPLETO (ANEXO 2)
+   ========================================================================== */
 .netflix-drawer-wrap {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    width: auto !important;
+    z-index: 500 !important;
     display: flex !important;
-    width: 78px;
-    height: calc(100vh - 56px);
-    top: 56px;
-    z-index: 40;
-    pointer-events: none;
+    pointer-events: none !important;
+    transition: opacity 0.3s ease;
 }
 
-.netflix-drawer-wrap .drawer-backdrop { display: none; }
+.netflix-drawer-wrap .drawer-backdrop {
+    display: none !important;
+}
+
 .netflix-drawer {
-    width: 78px;
-    max-width: none;
-    height: 100%;
-    padding: 18px 10px;
-    background: rgba(8, 19, 27, .76);
-    border-right: 1px solid rgba(125, 211, 252, .18);
-    box-shadow: 8px 0 28px rgba(0, 0, 0, .26);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    pointer-events: auto;
-    animation: none;
+    width: 68px !important;
+    max-width: none !important;
+    height: 100vh !important;
+    background: rgba(9, 14, 23, 0.75) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 10px 0 35px rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    padding: 28px 10px !important;
+    box-sizing: border-box !important;
+    pointer-events: auto !important;
+    transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1), background 0.28s ease, box-shadow 0.28s ease !important;
+    overflow: hidden !important;
+    animation: none !important;
 }
 
-.drawer-header, .drawer-footer, .drawer-item-content, .drawer-badge { display: none !important; }
-.drawer-nav { gap: 12px; overflow: visible; }
+/* Quando o menu está selecionado / aberto (Anexo 2) ou no hover */
+.netflix-drawer-wrap.is-open .netflix-drawer,
+.netflix-drawer:hover {
+    width: 270px !important;
+    background: rgba(8, 14, 23, 0.90) !important;
+    border-right: 1px solid rgba(56, 189, 248, 0.28) !important;
+    box-shadow: 25px 0 60px rgba(0, 0, 0, 0.75) !important;
+}
+
+.drawer-nav {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+    overflow: visible !important;
+}
+
 .drawer-item {
-    width: 56px;
-    height: 56px;
-    padding: 0;
-    justify-content: center;
-    border: 1px solid transparent;
-    border-radius: 12px;
-    background: transparent;
-    gap: 0;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    height: 50px !important;
+    padding: 0 10px !important;
+    border-radius: 10px !important;
+    border: 1.5px solid transparent !important;
+    background: transparent !important;
+    color: #ffffff !important;
+    cursor: pointer !important;
+    outline: none !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+    transform: none !important;
 }
-.drawer-item-icon { font-size: 25px; filter: grayscale(1) brightness(1.8); }
-.drawer-item:focus, .drawer-item.focused {
-    width: 224px;
-    justify-content: flex-start;
-    padding-left: 16px;
-    border-color: #22d3ee !important;
-    background: rgba(21, 83, 96, .84) !important;
-    box-shadow: 0 6px 22px rgba(0, 0, 0, .24) !important;
-    transform: none;
+
+.drawer-item-icon {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #ffffff !important;
+    filter: none !important;
 }
-.drawer-item:focus .drawer-item-content, .drawer-item.focused .drawer-item-content { display: flex !important; margin-left: 14px; }
-.drawer-item-title { font-size: 17px; }
-.drawer-item-desc { display: none; }
-.drawer-item-exit { margin-top: auto; background: transparent; border-top: 0; }
+
+.drawer-item-icon svg {
+    width: 24px !important;
+    height: 24px !important;
+    stroke: #ffffff !important;
+    stroke-width: 2 !important;
+    fill: none !important;
+    display: block !important;
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.drawer-item-title {
+    margin-left: 14px !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    color: #ffffff !important;
+    opacity: 0 !important;
+    transform: translateX(-10px) !important;
+    transition: opacity 0.2s ease, transform 0.2s ease !important;
+    pointer-events: none !important;
+    display: block !important;
+}
+
+/* Revela os textos no menu selecionado (Anexo 2) */
+.netflix-drawer-wrap.is-open .drawer-item-title,
+.netflix-drawer:hover .drawer-item-title {
+    opacity: 1 !important;
+    transform: translateX(0) !important;
+}
+
+/* Item Selecionado / Focado (Exato Estilo Anexo 2: Pílula Ciano com Brilho Suave) */
+.drawer-item:focus,
+.drawer-item.focused {
+    border: 1.5px solid #38bdf8 !important;
+    background: rgba(14, 116, 144, 0.42) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.4), inset 0 0 10px rgba(56, 189, 248, 0.2) !important;
+    color: #ffffff !important;
+    transform: none !important;
+}
+
+.drawer-item:focus .drawer-item-title,
+.drawer-item.focused .drawer-item-title {
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.7) !important;
+}
+
+.drawer-item:focus .drawer-item-icon svg,
+.drawer-item.focused .drawer-item-icon svg {
+    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8)) !important;
+}
+
+.drawer-item-exit {
+    margin-top: auto !important;
+}
 
 .main-container { padding-left: 78px; }
 .app-header { padding-left: 102px; }
