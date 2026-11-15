@@ -39,7 +39,9 @@ class DvrTvApp {
         this.isQrModalOpen = false;
         this.isHelpModalOpen = false;
         this.isLicenseModalOpen = false;
-        this.isOnboarding = localStorage.getItem('dvr_onboarding_complete') !== 'true';
+        var isConfigured = Boolean(savedIp && savedUser && savedPwd);
+        this.isConfigured = isConfigured;
+        this.isOnboarding = !isConfigured;
         this.openedFromZone = "grid";
 
         // Zonas de Foco: 'grid', 'bottom-bar', 'drawer', 'modal', 'qrcode', 'help', 'fullscreen'
@@ -79,7 +81,13 @@ class DvrTvApp {
         if (this.isOnboarding) {
             this.currentFocusZone = 'onboarding';
             var firstOnboardingButton = document.getElementById('onboarding-mobile');
-            if (firstOnboardingButton) firstOnboardingButton.focus();
+            if (firstOnboardingButton) {
+                firstOnboardingButton.focus();
+                firstOnboardingButton.classList.add('is-focused');
+            }
+            await this.detectServerInfo();
+            this.startSyncPolling();
+            return;
         }
 
         // Inicializar player de vídeo para a TV
@@ -937,7 +945,7 @@ class DvrTvApp {
         this.currentFocusZone = 'modal';
 
         var modal = document.getElementById('settings-modal');
-        if (modal) modal.style.display = 'flex';
+        if (modal) { modal.classList.add('is-open'); modal.style.setProperty('display', 'flex', 'important'); }
 
         var ipInput = document.getElementById('cfg-ip');
         var userInput = document.getElementById('cfg-user');
@@ -999,10 +1007,18 @@ class DvrTvApp {
     closeSettingsModal() {
         this.isModalOpen = false;
         var modal = document.getElementById('settings-modal');
-        if (modal) modal.style.display = 'none';
+        if (modal) {
+            modal.classList.remove('is-open');
+            modal.style.setProperty('display', 'none', 'important');
+        }
 
-        if (this.openedFromOnboarding) {
+        if (this.isOnboarding || (!this.isConfigured && this.openedFromOnboarding)) {
             this.currentFocusZone = 'onboarding';
+            var onboardingMobile = document.getElementById('onboarding-mobile');
+            if (onboardingMobile) {
+                onboardingMobile.focus();
+                onboardingMobile.classList.add('is-focused');
+            }
         } else if (this.openedFromZone === 'drawer') {
             this.openDrawer();
         } else {
@@ -1032,13 +1048,9 @@ class DvrTvApp {
             document.getElementById('cfg-pwd'),
             document.getElementById('cfg-http-port'),
             document.getElementById('cfg-rtsp-port'),
-            document.getElementById('cfg-server-url'),
             document.getElementById('cfg-quality'),
             document.getElementById('cfg-grid-mode'),
             document.getElementById('cfg-show-offline'),
-            document.getElementById('btn-cfg-mobile'),
-            document.getElementById('btn-cfg-reconnect'),
-            document.getElementById('btn-cfg-license'),
             document.getElementById('btn-default-settings'),
             document.getElementById('btn-cancel-settings'),
             document.getElementById('btn-save-settings')
@@ -1145,6 +1157,9 @@ class DvrTvApp {
 
             this.dvr = testClient;
             this.channels = channels;
+            this.isConfigured = true;
+            this.isOnboarding = false;
+            localStorage.setItem('dvr_onboarding_complete', 'true');
 
             if (banner) {
                 banner.className = 'cfg-status-banner success';
@@ -1598,13 +1613,6 @@ class DvrTvApp {
     handleBack() {
         var self = this;
 
-        if (this.isOnboarding) return;
-
-        if (this.isFullScreen) {
-            this.closeFullScreen();
-            return;
-        }
-
         if (this.isModalOpen) {
             this.closeSettingsModal();
             return;
@@ -1617,6 +1625,18 @@ class DvrTvApp {
 
         if (this.isHelpModalOpen) {
             this.closeHelpModal();
+            return;
+        }
+
+        if (this.isLicenseModalOpen) {
+            this.closeLicenseModal();
+            return;
+        }
+
+        if (this.isOnboarding) return;
+
+        if (this.isFullScreen) {
+            this.closeFullScreen();
             return;
         }
 
