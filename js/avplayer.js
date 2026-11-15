@@ -60,6 +60,11 @@ class TvStreamPlayer {
             const h = Math.round(rect.height);
 
             window.webapis.avplay.setDisplayRect(x, y, w, h);
+            try {
+                window.webapis.avplay.setDisplayMethod('PLAYER_DISPLAY_MODE_FULL_SCREEN');
+            } catch (dmErr) {
+                console.warn('[AVPlay] setDisplayMethod:', dmErr);
+            }
 
             window.webapis.avplay.setListener({
                 onbufferingstart: () => {
@@ -98,6 +103,7 @@ class TvStreamPlayer {
      */
     async playFallback(channelId, streamType) {
         console.log('[Player] Executando streaming contínuo via snapshots (Fallback)');
+        this.fallbackImg.src = this.dvrClient.getSnapshotUrl(channelId, streamType);
         this.fallbackImg.style.display = 'block';
 
         let lastBlobUrl = null;
@@ -176,6 +182,9 @@ class TvStreamPlayer {
                 Math.round(rect.width),
                 Math.round(rect.height)
             );
+            try {
+                window.webapis.avplay.setDisplayMethod('PLAYER_DISPLAY_MODE_FULL_SCREEN');
+            } catch (e2) {}
         } catch (e) {
             console.warn('[AVPlay] Erro ao redimensionar:', e);
         }
