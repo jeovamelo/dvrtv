@@ -528,6 +528,7 @@
     <div id="toast" class="toast">Comando enviado!</div>
 
     <script>
+        let latestTvState = null;
         let sessionToken = localStorage.getItem('mobile_session_token') || '';
         let pollTimer = null;
         // Permite ESTRITAMENTE grades quadradas
@@ -602,17 +603,41 @@
         }
 
         function cycleSquareGrid() {
-            currentGridIdx = (currentGridIdx + 1) % squareGrids.length;
-            const nextMode = squareGrids[currentGridIdx];
+            const grids = window.allowedGrids || ['auto', '4x4', '5x5', '6x6'];
+            currentGridIdx = (currentGridIdx + 1) % grids.length;
+            const nextMode = grids[currentGridIdx];
             sendCommand('set_grid', null, nextMode);
         }
 
         function openMobileSettings() {
-            // Carrega valores atuais no modal do celular
             document.getElementById('m-cfg-ip').value = localStorage.getItem('m_dvr_ip') || '192.168.100.2';
             document.getElementById('m-cfg-user').value = localStorage.getItem('m_dvr_user') || 'admin';
             document.getElementById('m-cfg-pwd').value = '';
-            document.getElementById('m-cfg-grid').value = squareGrids[currentGridIdx] || 'auto';
+            
+            // Popula apenas as grades permitidas
+            const gridSelect = document.getElementById('m-cfg-grid');
+            if (gridSelect) {
+                const grids = window.allowedGrids || ['auto', '4x4', '5x5', '6x6'];
+                gridSelect.innerHTML = '';
+                const labels = {
+                    'auto': 'Automático (Ideal)',
+                    '1x1': '1x1 (1 Câmera)',
+                    '2x2': '2x2 (4 Câmeras)',
+                    '3x3': '3x3 (9 Câmeras)',
+                    '4x4': '4x4 (16 Câmeras)',
+                    '5x5': '5x5 (25 Câmeras)',
+                    '6x6': '6x6 (36 Câmeras)'
+                };
+                grids.forEach(g => {
+                    const opt = document.createElement('option');
+                    opt.value = g;
+                    opt.textContent = labels[g] || g;
+                    gridSelect.appendChild(opt);
+                });
+                const curGrid = (latestTvState && latestTvState.gridMode) ? latestTvState.gridMode : 'auto';
+                gridSelect.value = (grids.indexOf(curGrid) !== -1) ? curGrid : 'auto';
+            }
+
             document.getElementById('m-cfg-offline').value = localStorage.getItem('m_dvr_offline') || 'true';
             document.getElementById('mobile-settings-modal').style.display = 'flex';
         }
@@ -684,6 +709,7 @@
         }
 
         function updateUIWithTvState(state) {
+            latestTvState = state;
             const viewEl = document.getElementById('tv-current-view');
             if (state.currentView === 'fullscreen') {
                 viewEl.textContent = 'Câmera Única: ' + (state.selectedCameraName || ('CH ' + state.selectedChannelId));

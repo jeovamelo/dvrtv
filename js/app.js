@@ -127,13 +127,6 @@ class DvrTvApp {
         var header = document.getElementById('app-header');
         var bottomBar = document.getElementById('bottom-menu-bar');
 
-        // Em tela cheia dedicada, menus permanecem ocultos
-        if (this.isFullScreen) {
-            if (header) header.classList.remove('visible');
-            if (bottomBar) bottomBar.classList.remove('visible');
-            return;
-        }
-
         if (header) header.classList.add('visible');
         if (bottomBar) bottomBar.classList.add('visible');
 
@@ -378,17 +371,46 @@ class DvrTvApp {
         return { layout: '6x6', cols: 6, capacity: 36 };
     }
 
+    /**
+     * Retorna apenas as grades quadradas cuja capacidade é >= ao número de câmeras visíveis.
+     * NUNCA permite grades com capacidade menor que as câmeras disponíveis.
+     */
+    getAllowedSquareGrids() {
+        var visibleCount = this.getVisibleChannels().length;
+        var allGrids = [
+            { id: '1x1', cap: 1 },
+            { id: '2x2', cap: 4 },
+            { id: '3x3', cap: 9 },
+            { id: '4x4', cap: 16 },
+            { id: '5x5', cap: 25 },
+            { id: '6x6', cap: 36 }
+        ];
+        var allowed = ['auto'];
+        for (var i = 0; i < allGrids.length; i++) {
+            if (allGrids[i].cap >= visibleCount) {
+                allowed.push(allGrids[i].id);
+            }
+        }
+        return allowed;
+    }
+
     renderGrid() {
         var self = this;
         var grid = document.getElementById('camera-grid');
         if (!grid) return;
 
         var visibleChannels = this.getVisibleChannels();
-        var gridSpec;
+        var allowed = this.getAllowedSquareGrids();
 
-        // Permite somente grades estritamente quadradas
-        var validSquareGrids = ['1x1', '2x2', '3x3', '4x4', '5x5', '6x6'];
-        if (this.gridMode === 'auto' || validSquareGrids.indexOf(this.gridMode) === -1) {
+        // NUNCA permitir uma grade cuja quantidade seja menor que as disponíveis (evita paginação e travamento)
+        if (this.gridMode !== 'auto' && allowed.indexOf(this.gridMode) === -1) {
+            console.warn('[Grid] Grade ' + this.gridMode + ' inválida para ' + visibleChannels.length + ' câmeras (capacidade menor que visíveis). Forçando auto.');
+            this.gridMode = 'auto';
+            localStorage.setItem('dvr_grid_mode', 'auto');
+        }
+
+        var gridSpec;
+        if (this.gridMode === 'auto') {
             gridSpec = this.calculateOptimalGrid(visibleChannels.length);
         } else {
             var cols = parseInt(this.gridMode.charAt(0), 10);
@@ -426,6 +448,11 @@ class DvrTvApp {
             var statusText = channel.isOnline ? 'AO VIVO' : 'SEM SINAL';
             var resBadge = channel.resDesc || (channel.isOnline ? '1080P' : 'OFF');
 
+            var qualityHtml = '';
+            if (self.currentLayout === '1x1') {
+                qualityHtml = '<span class="cam-quality-tag"><span class="quality-dot yellow"></span> ' + (self.streamQuality === 'main' ? 'HD' : 'Fluido') + '</span>';
+            }
+
             if (channel.isOnline) {
                 var initialSrc = self.dvr.getSnapshotUrl(channel.id, 2);
                 card.innerHTML = 
@@ -434,6 +461,7 @@ class DvrTvApp {
                         '<div class="camera-overlay-top">' +
                             '<span class="cam-badge-id">CH ' + channel.id + '</span>' +
                             '<span class="cam-name">' + channel.name + '</span>' +
+                            qualityHtml +
                         '</div>' +
                         '<div class="camera-overlay-bottom">' +
                             '<span class="cam-status ' + statusClass + '">' + statusText + '</span>' +
@@ -446,6 +474,7 @@ class DvrTvApp {
                         '<div class="camera-overlay-top">' +
                             '<span class="cam-badge-id">CH ' + channel.id + '</span>' +
                             '<span class="cam-name">' + channel.name + '</span>' +
+                            qualityHtml +
                         '</div>' +
                         '<div class="camera-overlay-bottom">' +
                             '<span class="cam-status ' + statusClass + '">' + statusText + '</span>' +
@@ -528,7 +557,8 @@ class DvrTvApp {
                 if (deviceInfo) {
                     var titleEl = document.getElementById('dvr-title');
                     if (titleEl) {
-                        titleEl.textContent = deviceInfo.deviceName + ' • ' + deviceInfo.model;
+                        this.deviceTitle = deviceInfo.deviceName + ' • ' + deviceInfo.model;
+                    titleEl.textContent = this.deviceTitle;
                     }
                 }
             } catch (errDev) {
@@ -608,14 +638,15 @@ class DvrTvApp {
     }
 
     cycleGridMode() {
-        var squareModes = ['auto', '1x1', '2x2', '3x3', '4x4', '5x5', '6x6'];
-        var idx = squareModes.indexOf(this.gridMode);
-        var nextIdx = (idx + 1) % squareModes.length;
-        this.gridMode = squareModes[nextIdx];
+        var allowed = this.getAllowedSquareGrids();
+        var idx = allowed.indexOf(this.gridMode);
+        var nextIdx = (idx + 1) % allowed.length;
+        this.gridMode = allowed[nextIdx];
         localStorage.setItem('dvr_grid_mode', this.gridMode);
         this.renderGrid();
         this.updateBarLabels();
         this.showToast('Grade: ' + (this.gridMode === 'auto' ? 'Automática' : this.gridMode.toUpperCase()));
+        this.syncStateToServer();
     }
 
     toggleStreamQuality() {
@@ -730,7 +761,30 @@ class DvrTvApp {
             pwdInput.placeholder = '•••••••• (Salva internamente)';
         }
         if (showOfflineSelect) showOfflineSelect.value = this.showOfflineCameras ? 'true' : 'false';
-        if (gridModeSelect) gridModeSelect.value = this.gridMode;
+        if (gridModeSelect) {
+            var allowed = this.getAllowedSquareGrids();
+            gridModeSelect.innerHTML = '';
+            var optAuto = document.createElement('option');
+            optAuto.value = 'auto';
+            optAuto.textContent = 'Automática (Ideal para ' + this.getVisibleChannels().length + ' câmeras)';
+            gridModeSelect.appendChild(optAuto);
+
+            var labels = {
+                '1x1': '1x1 (1 Câmera)',
+                '2x2': '2x2 (4 Câmeras)',
+                '3x3': '3x3 (9 Câmeras)',
+                '4x4': '4x4 (16 Câmeras)',
+                '5x5': '5x5 (25 Câmeras)',
+                '6x6': '6x6 (36 Câmeras)'
+            };
+            for (var i = 1; i < allowed.length; i++) {
+                var opt = document.createElement('option');
+                opt.value = allowed[i];
+                opt.textContent = labels[allowed[i]] || allowed[i];
+                gridModeSelect.appendChild(opt);
+            }
+            gridModeSelect.value = (allowed.indexOf(this.gridMode) !== -1) ? this.gridMode : 'auto';
+        }
         if (httpPortInput) httpPortInput.value = localStorage.getItem('dvr_http_port') || this.dvr.httpPort || 80;
         if (rtspPortInput) rtspPortInput.value = localStorage.getItem('dvr_rtsp_port') || this.dvr.rtspPort || 554;
         if (serverUrlInput) serverUrlInput.value = this.serverUrl || (this.detectedServerIp ? (this.detectedServerIp + ':8080') : '192.168.100.74:8080');
@@ -895,35 +949,25 @@ class DvrTvApp {
         this.currentFocusZone = 'fullscreen';
 
         var fsView = document.getElementById('fullscreen-view');
-        var appHeader = document.getElementById('app-header');
-        var bottomBar = document.getElementById('bottom-menu-bar');
-
         if (fsView) fsView.style.display = 'flex';
-        if (appHeader) appHeader.classList.remove('visible');
-        if (bottomBar) bottomBar.classList.remove('visible');
+
+        // Atualiza título no cabeçalho superior para a câmera em tela cheia
+        var titleEl = document.getElementById('dvr-title');
+        if (titleEl) {
+            titleEl.textContent = (this.deviceTitle || 'DVR01Casa') + ' • ' + channel.name + ' (CH ' + channel.id + ')';
+        }
+
+        // Atualiza orientações no menu inferior
+        var hintEl = document.querySelector('.bottom-menu-hint');
+        if (hintEl) {
+            hintEl.innerHTML = '<span class="key-badge">◄ ►</span> Trocar Câmera &bull; <span class="key-badge">OK</span> Fluido/HD &bull; <span class="key-badge">VOLTAR</span> Grade';
+        }
 
         var toastBadge = document.getElementById('fs-toast-badge');
-        var badgeTitle = document.getElementById('fs-badge-title');
-        var badgeQuality = document.getElementById('fs-badge-quality');
+        if (toastBadge) toastBadge.classList.remove('show');
 
-        if (badgeTitle) badgeTitle.textContent = channel.name + ' (CH ' + channel.id + ')';
-        if (badgeQuality) {
-            if (this.streamQuality === 'main') {
-                badgeQuality.className = 'fs-tag-hd';
-                badgeQuality.textContent = '● HD 1080p';
-            } else {
-                badgeQuality.className = 'fs-tag-fluido';
-                badgeQuality.textContent = '● Fluido';
-            }
-        }
-
-        if (toastBadge) {
-            toastBadge.classList.add('show');
-            if (this.fsToastTimer) clearTimeout(this.fsToastTimer);
-            this.fsToastTimer = setTimeout(function() {
-                toastBadge.classList.remove('show');
-            }, 2500);
-        }
+        // Exibe o cabeçalho e menu inferior translúcidos estilo Netflix (auto-fade após 4s)
+        this.wakeChrome();
 
         var streamType = (this.streamQuality === 'main') ? 1 : 2;
         if (this.player) {
@@ -943,6 +987,18 @@ class DvrTvApp {
 
         if (this.player) {
             this.player.stop();
+        }
+
+        // Restaura título original do DVR
+        var titleEl = document.getElementById('dvr-title');
+        if (titleEl) {
+            titleEl.textContent = this.deviceTitle || 'DVR01Casa • iDS-7216HQHI-M1/XT';
+        }
+
+        // Restaura orientações do menu inferior
+        var hintEl = document.querySelector('.bottom-menu-hint');
+        if (hintEl) {
+            hintEl.innerHTML = '<span class="key-badge">▲ ▼ ◄ ►</span> Navegar &bull; <span class="key-badge">OK</span> Selecionar / Tela Cheia';
         }
 
         this.currentFocusZone = 'grid';
@@ -1016,10 +1072,27 @@ class DvrTvApp {
 
         // 3. Em Tela Cheia
         if (this.currentFocusZone === 'fullscreen' && this.isFullScreen) {
-            if (direction === 'up' || direction === 'right') {
+            if (direction === 'right') {
                 this.nextCamera();
-            } else if (direction === 'down' || direction === 'left') {
+                return;
+            } else if (direction === 'left' || direction === 'up') {
                 this.prevCamera();
+                return;
+            } else if (direction === 'down') {
+                // Descer da câmera foca a barra inferior translúcida
+                this.currentFocusZone = 'bottom-bar';
+                this.bottomBarFocusIndex = 0;
+                var barBtns = [
+                    document.getElementById('btn-bar-menu'),
+                    document.getElementById('btn-bar-settings'),
+                    document.getElementById('btn-bar-grid'),
+                    document.getElementById('btn-bar-quality'),
+                    document.getElementById('btn-bar-mobile'),
+                    document.getElementById('btn-bar-reconnect'),
+                    document.getElementById('btn-bar-help')
+                ].filter(function(el) { return el !== null; });
+                this.updateBottomBarFocus(barBtns, 0);
+                return;
             }
             return;
         }
@@ -1323,6 +1396,7 @@ class DvrTvApp {
             selectedCameraName: selectedCh ? selectedCh.name : 'Camera 01',
             quality: this.streamQuality,
             gridMode: this.gridMode,
+            allowedGrids: this.getAllowedSquareGrids(),
             showOffline: this.showOfflineCameras,
             bandwidth: this.dvr ? (this.dvr.bandwidthFormatted || '0 KB/s') : '0 KB/s',
             channels: (this.channels || []).map(function(c) {
