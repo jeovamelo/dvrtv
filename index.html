@@ -140,6 +140,15 @@
                     <span class="drawer-badge" id="drawer-filter-badge">Não</span>
                 </button>
 
+                                <button class="drawer-item" id="drawer-item-quality" tabindex="0">
+                    <span class="drawer-item-icon">📺</span>
+                    <div class="drawer-item-content">
+                        <span class="drawer-item-title">Qualidade de Vídeo</span>
+                        <span class="drawer-item-desc" id="drawer-quality-desc">Alternar entre Fluido e HD 1080p</span>
+                    </div>
+                    <span class="drawer-badge" id="drawer-quality-badge">Fluido</span>
+                </button>
+
                 <button class="drawer-item" id="drawer-item-grid" tabindex="0">
                     <span class="drawer-item-icon">🔲</span>
                     <div class="drawer-item-content">
@@ -345,7 +354,18 @@
                 </div>
 
                 <div class="form-row">
+                                    <div class="form-row">
                     <div class="form-group flex-1">
+                        <label for="cfg-quality">Qualidade Padrão</label>
+                        <select id="cfg-quality" class="form-input form-select" tabindex="0">
+                            <option value="sub">Fluido / Sub-stream (Rápido e Estável)</option>
+                            <option value="main">HD 1080p / Main-stream (Alta Resolução)</option>
+                        </select>
+                        <span class="input-hint">Resolução de inicialização do vídeo</span>
+                    </div>
+                </div>
+
+                <div class="form-group flex-1">
                         <label for="cfg-show-offline">Mostrar Câmeras Sem Sinal</label>
                         <select id="cfg-show-offline" class="form-input form-select" tabindex="0">
                             <option value="true">Sim (Mostrar todas as posições)</option>
@@ -367,6 +387,18 @@
                         </select>
                         <span class="input-hint">Sempre com mesmo número de linhas e colunas</span>
                     </div>
+                </div>
+
+                                <div class="settings-actions-group">
+                    <button type="button" id="btn-cfg-reconnect" class="cfg-action-btn" tabindex="0">
+                        <span>🔄 Reconectar ao DVR</span>
+                    </button>
+                    <button type="button" id="btn-cfg-mobile" class="cfg-action-btn" tabindex="0">
+                        <span>📱 Controlar pelo Celular (QR)</span>
+                    </button>
+                    <button type="button" id="btn-cfg-license" class="cfg-action-btn license-btn" tabindex="0">
+                        <span>🔑 Ativar / Ver Licença</span>
+                    </button>
                 </div>
 
                 <div class="advanced-section">
@@ -407,6 +439,69 @@
                 </button>
                 <button type="button" id="btn-cancel-settings" class="modal-btn btn-cancel" tabindex="0">
                     <span>✕ Cancelar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+        <!-- Modal: Ativação de Licença e Identificação da TV -->
+    <div id="license-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-backdrop" id="license-backdrop"></div>
+        <div class="modal-card modal-license-card">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <span class="modal-icon">🔑</span>
+                    <h2>Ativação e Licença da TV</h2>
+                </div>
+                <button type="button" id="btn-close-license" class="btn-close-modal" title="Fechar" tabindex="0">✕</button>
+            </div>
+
+            <div class="modal-body license-body">
+                <div class="license-status-banner" id="license-status-banner">
+                    <span class="status-indicator-dot" id="lic-status-dot"></span>
+                    <div class="status-text-block">
+                        <strong id="lic-status-title">Status da Licença: Não Ativado</strong>
+                        <p id="lic-status-desc">Esta televisão precisa de uma licença vinculada para monitoramento contínuo.</p>
+                    </div>
+                </div>
+
+                <div class="license-qr-wrap">
+                    <div id="license-qrcode-container" class="qrcode-container"></div>
+                    <div class="license-info-details">
+                        <div class="info-row">
+                            <span class="info-label">Código Temporário:</span>
+                            <span class="info-value code-highlight" id="lic-temp-code">--- ---</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Fabricante / SO:</span>
+                            <span class="info-value" id="lic-tv-os">Samsung Smart TV (Tizen)</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Modelo Detectado:</span>
+                            <span class="info-value" id="lic-tv-model">Samsung Smart TV</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">ID do Dispositivo (DUID):</span>
+                            <span class="info-value mono-text" id="lic-tv-duid">---</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Chave de Licença:</span>
+                            <span class="info-value mono-text" id="lic-key-display">Não ativado</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="license-instruction">
+                    Aponte a câmera do celular para o QR Code para ativar esta televisão no Portal do Instalador utilizando 1 crédito pré-pago.
+                </p>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" id="btn-refresh-license" class="modal-btn btn-secondary" tabindex="0">
+                    <span>🔄 Verificar Ativação</span>
+                </button>
+                <button type="button" id="btn-dismiss-license" class="modal-btn btn-primary" tabindex="0">
+                    <span>Voltar</span>
                 </button>
             </div>
         </div>

@@ -1610,3 +1610,182 @@ html, body {
     letter-spacing: 0.5px;
     display: inline-block;
 }
+
+/* ==========================================================================
+   MELHORIAS: AÇÕES DAS CONFIGURAÇÕES E MODAL DE LICENÇA (1080p TV)
+   ========================================================================== */
+.settings-actions-group {
+    display: flex;
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.cfg-action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1e293b;
+    border: 1.5px solid rgba(56, 189, 248, 0.3);
+    color: #f1f5f9;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    outline: none;
+}
+
+.cfg-action-btn:hover,
+.cfg-action-btn.focused {
+    background: #0284c7;
+    border-color: #38bdf8;
+    color: #ffffff;
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.7);
+    transform: scale(1.02);
+}
+
+.cfg-action-btn.license-btn {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.3) 100%);
+    border-color: rgba(16, 185, 129, 0.5);
+    color: #6ee7b7;
+}
+
+.cfg-action-btn.license-btn:hover,
+.cfg-action-btn.license-btn.focused {
+    background: #059669;
+    border-color: #34d399;
+    color: #ffffff;
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.8);
+}
+
+/* Modal de Licença */
+.modal-license-card {
+    max-width: 680px;
+    width: 90%;
+}
+
+.license-status-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    margin-bottom: 20px;
+}
+
+.license-status-banner.active {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.5);
+}
+
+.license-status-banner.pending {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.5);
+}
+
+.status-indicator-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: #f59e0b;
+    box-shadow: 0 0 10px #f59e0b;
+    flex-shrink: 0;
+}
+
+.license-status-banner.active .status-indicator-dot {
+    background-color: #10b981;
+    box-shadow: 0 0 10px #10b981;
+}
+
+.status-text-block strong {
+    display: block;
+    font-size: 16px;
+    color: #ffffff;
+    margin-bottom: 3px;
+}
+
+.status-text-block p {
+    font-size: 13px;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.license-qr-wrap {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    background: #0b111d;
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 16px;
+}
+
+.license-info-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.license-info-details .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 6px;
+    font-size: 13px;
+}
+
+.license-info-details .info-label {
+    color: #94a3b8;
+}
+
+.license-info-details .info-value {
+    color: #f8fafc;
+    font-weight: 600;
+}
+
+.license-info-details .code-highlight {
+    font-size: 18px;
+    font-weight: 800;
+    color: #38bdf8;
+    letter-spacing: 2px;
+    font-family: monospace;
+}
+
+.license-info-details .mono-text {
+    font-family: monospace;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.license-instruction {
+    font-size: 13px;
+    color: #94a3b8;
+    text-align: center;
+    line-height: 1.5;
+}
+
+/* Regra estrita: Câmeras sem sinal e slots vazios são estritamente fundo preto */
+.camera-card.offline-card {
+    background-color: #000000 !important;
+    border: 2px solid transparent !important;
+    box-shadow: none !important;
+    cursor: default;
+}
+
+.camera-card.offline-card .card-video-wrap {
+    background-color: #000000 !important;
+}
+
+.camera-card.empty-slot {
+    background-color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+    pointer-events: none !important;
+}

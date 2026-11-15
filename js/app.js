@@ -376,6 +376,10 @@ class DvrTvApp {
      * Retorna apenas as grades quadradas cuja capacidade é >= ao número de câmeras visíveis.
      * NUNCA permite grades com capacidade menor que as câmeras disponíveis.
      */
+    getAllowedSquareGrids() {
+        return ['auto', '1x1', '2x2', '3x3', '4x4', '5x5', '6x6'];
+    }
+
     getCurrentGridSpec() {
         var visibleCount = this.getVisibleChannels().length;
         if (this.gridMode === 'auto') {
