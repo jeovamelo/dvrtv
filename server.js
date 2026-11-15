@@ -218,7 +218,7 @@ const server = http.createServer((req, res) => {
                 const host = (data.ip || '').trim();
                 const port = parseInt(data.httpPort || defaultDvrPort, 10);
                 const user = (data.user || data.username || '').trim();
-                const pass = data.pwd || data.password || '';
+                const pass = (data.pwd || data.password || data.pass || '').trim();
 
                 if (!host || !user || !pass) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -508,7 +508,7 @@ const server = http.createServer((req, res) => {
             res.writeHead(404, { 'Content-Type': 'text/plain' });
             res.end('404 Not Found');
         } else {
-            res.writeHead(200, { 'Content-Type': contentType });
+            res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' });
             res.end(content);
         }
     });

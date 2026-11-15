@@ -1166,7 +1166,12 @@ class DvrTvApp {
             if (banner) {
                 banner.className = 'cfg-status-banner error';
                 banner.style.display = 'flex';
-                banner.textContent = '❌ Falha ao conectar: Verifique se o IP, Usuário e Senha estão corretos e tente novamente (' + (err.message || 'DVR inacessível') + ').';
+                var rawMsg = err.message || 'DVR inacessível';
+            var friendlyMsg = rawMsg;
+            if (rawMsg.toLowerCase().indexOf('unauthorized') !== -1) {
+                friendlyMsg = 'Senha ou Usuário incorretos no DVR (Unauthorized). Confira se a senha foi digitada corretamente clicando no botão do olho 👁️ (senha cadastrada: jr130182).';
+            }
+            banner.textContent = '❌ ' + friendlyMsg;
             }
             if (pwdInput) pwdInput.focus();
         } finally {
