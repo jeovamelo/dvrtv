@@ -31,6 +31,8 @@ class DvrTvApp {
         this.isDrawerOpen = false;
         this.isQrModalOpen = false;
         this.isHelpModalOpen = false;
+        this.isLicenseModalOpen = false;
+        this.openedFromZone = "grid";
 
         // Zonas de Foco: 'grid', 'bottom-bar', 'drawer', 'modal', 'qrcode', 'help', 'fullscreen'
         this.currentFocusZone = 'grid';
@@ -53,6 +55,7 @@ class DvrTvApp {
         this.modalFocusableElements = [];
         this.modalFocusIndex = 0;
         this.isAdvancedOpen = false;
+        this.initDeviceIdentity();
 
         this.init();
     }
@@ -125,6 +128,7 @@ class DvrTvApp {
        AUTO-FADE DO CABEÇALHO E RODAPÉ ESTILO NETFLIX (TRANSLÚCIDO)
        ========================================================================== */
     wakeChrome() {
+        if (this.isFullScreen) { return; }
         var header = document.getElementById('app-header');
         var bottomBar = document.getElementById('bottom-menu-bar');
 
@@ -210,6 +214,11 @@ class DvrTvApp {
         if (drawerGridBadge) {
             drawerGridBadge.textContent = (this.gridMode === 'auto' ? 'Auto' : this.gridMode.toUpperCase());
         }
+        var drawerQualityBadge = document.getElementById('drawer-quality-badge');
+        if (drawerQualityBadge) {
+            drawerQualityBadge.textContent = (this.streamQuality === 'main') ? 'HD 1080p' : 'Fluido';
+        }
+
     }
 
     /* ==========================================================================
@@ -321,6 +330,36 @@ class DvrTvApp {
 
         var btnDefault = document.getElementById('btn-default-settings');
         if (btnDefault) btnDefault.addEventListener('click', function() { self.restoreDefaultSettings(); });
+
+        var drawerItemQuality = document.getElementById('drawer-item-quality');
+        if (drawerItemQuality) drawerItemQuality.addEventListener('click', function() { self.toggleStreamQuality(); });
+
+        var btnCfgReconnect = document.getElementById('btn-cfg-reconnect');
+        if (btnCfgReconnect) btnCfgReconnect.addEventListener('click', function() {
+            self.closeSettingsModal();
+            self.connectDvr();
+        });
+
+        var btnCfgMobile = document.getElementById('btn-cfg-mobile');
+        if (btnCfgMobile) btnCfgMobile.addEventListener('click', function() {
+            self.closeSettingsModal();
+            self.openQrModal();
+        });
+
+        var btnCfgLicense = document.getElementById('btn-cfg-license');
+        if (btnCfgLicense) btnCfgLicense.addEventListener('click', function() {
+            self.openLicenseModal();
+        });
+
+        var btnCloseLic = document.getElementById('btn-close-license');
+        var btnDismissLic = document.getElementById('btn-dismiss-license');
+        var btnRefreshLic = document.getElementById('btn-refresh-license');
+        var licBackdrop = document.getElementById('license-backdrop');
+        if (btnCloseLic) btnCloseLic.addEventListener('click', function() { self.closeLicenseModal(); });
+        if (btnDismissLic) btnDismissLic.addEventListener('click', function() { self.closeLicenseModal(); });
+        if (btnRefreshLic) btnRefreshLic.addEventListener('click', function() { self.refreshLicenseStatus(); });
+        if (licBackdrop) licBackdrop.addEventListener('click', function() { self.closeLicenseModal(); });
+
     }
 
     /* ==========================================================================
@@ -477,25 +516,20 @@ class DvrTvApp {
                         '</div>' +
                     '</div>';
             } else {
-                card.innerHTML = 
-                    '<div class="card-video-wrap" style="background:#000;">' +
-                        '<div class="camera-overlay-top">' +
-                            '<span class="cam-badge-id">CH ' + channel.id + '</span>' +
-                            '<span class="cam-name">' + channel.name + '</span>' +
-                            qualityHtml +
-                        '</div>' +
-                        '<div class="camera-overlay-bottom">' +
-                            '<span class="cam-status ' + statusClass + '">' + statusText + '</span>' +
-                            '<span class="cam-res">' + resBadge + '</span>' +
-                        '</div>' +
-                    '</div>';
+                // REGRA ESTRITA: Câmeras sem sinal são exibidas SOMENTE como fundo preto
+                // sem borda, sem texto, sem status, sem snapshot, sem tentativa de vídeo
+                card.innerHTML = '<div class="card-video-wrap" style="background:#000;"></div>';
             }
 
             card.addEventListener('click', function() {
                 self.currentFocusZone = 'grid';
                 self.focusedIndex = index;
                 self.updateCardFocus();
-                self.openFullScreen(channel);
+                if (channel.isOnline) {
+                    self.openFullScreen(channel);
+                } else {
+                    self.showToast('Câmera CH ' + channel.id + ' está sem sinal (NO VIDEO)');
+                }
             });
 
             grid.appendChild(card);
@@ -624,6 +658,7 @@ class DvrTvApp {
             document.getElementById('drawer-item-settings'),
             document.getElementById('drawer-item-filter'),
             document.getElementById('drawer-item-grid'),
+            document.getElementById('drawer-item-quality'),
             document.getElementById('drawer-item-mobile'),
             document.getElementById('drawer-item-help'),
             document.getElementById('drawer-item-exit')
@@ -764,6 +799,7 @@ class DvrTvApp {
         var userInput = document.getElementById('cfg-user');
         var pwdInput = document.getElementById('cfg-pwd');
         var showOfflineSelect = document.getElementById('cfg-show-offline');
+        var qualitySelect = document.getElementById('cfg-quality');
         var gridModeSelect = document.getElementById('cfg-grid-mode');
         var httpPortInput = document.getElementById('cfg-http-port');
         var rtspPortInput = document.getElementById('cfg-rtsp-port');
@@ -776,6 +812,7 @@ class DvrTvApp {
             pwdInput.placeholder = '•••••••• (Salva internamente)';
         }
         if (showOfflineSelect) showOfflineSelect.value = this.showOfflineCameras ? 'true' : 'false';
+        if (qualitySelect) qualitySelect.value = this.streamQuality || 'sub';
         if (gridModeSelect) {
             gridModeSelect.innerHTML = '';
             var optAuto = document.createElement('option');
@@ -814,8 +851,12 @@ class DvrTvApp {
         var modal = document.getElementById('settings-modal');
         if (modal) modal.style.display = 'none';
 
-        this.currentFocusZone = 'grid';
-        this.updateCardFocus();
+        if (this.openedFromZone === 'drawer') {
+            this.openDrawer();
+        } else {
+            this.currentFocusZone = 'grid';
+            this.updateCardFocus();
+        }
         this.wakeChrome();
     }
 
@@ -837,8 +878,12 @@ class DvrTvApp {
             document.getElementById('cfg-ip'),
             document.getElementById('cfg-user'),
             document.getElementById('cfg-pwd'),
+            document.getElementById('cfg-quality'),
             document.getElementById('cfg-show-offline'),
             document.getElementById('cfg-grid-mode'),
+            document.getElementById('btn-cfg-reconnect'),
+            document.getElementById('btn-cfg-mobile'),
+            document.getElementById('btn-cfg-license'),
             document.getElementById('btn-toggle-advanced')
         ];
 
@@ -895,6 +940,11 @@ class DvrTvApp {
             this.dvr.password = newPwd;
         }
 
+        if (qualitySelect) {
+            this.streamQuality = qualitySelect.value;
+            localStorage.setItem('dvr_stream_quality', this.streamQuality);
+            this.updateBarLabels();
+        }
         if (showOfflineSelect) {
             this.showOfflineCameras = (showOfflineSelect.value === 'true');
             localStorage.setItem('dvr_show_offline', this.showOfflineCameras ? 'true' : 'false');
@@ -981,8 +1031,24 @@ class DvrTvApp {
         var toastBadge = document.getElementById('fs-toast-badge');
         if (toastBadge) toastBadge.classList.remove('show');
 
-        // Exibe o cabeçalho e menu inferior translúcidos estilo Netflix (auto-fade após 4s)
-        this.wakeChrome();
+        // REGRA ESTRITA TELA CHEIA REAL: Esconder cabeçalho, rodapé e menus
+        var header = document.getElementById('app-header');
+        if (header) header.classList.remove('visible');
+        var bottomBar = document.getElementById('bottom-menu-bar');
+        if (bottomBar) bottomBar.classList.remove('visible');
+
+        var toastBadge = document.getElementById('fs-toast-badge');
+        var fsTitle = document.getElementById('fs-badge-title');
+        var fsQuality = document.getElementById('fs-badge-quality');
+        if (fsTitle) fsTitle.textContent = channel.name + ' (CH ' + channel.id + ')';
+        if (fsQuality) {
+            fsQuality.textContent = (this.streamQuality === 'main') ? '● HD 1080p' : '● Fluido';
+            fsQuality.className = (this.streamQuality === 'main') ? 'fs-tag-hd' : 'fs-tag-fluido';
+        }
+        if (toastBadge) {
+            toastBadge.classList.add('show');
+            setTimeout(function() { toastBadge.classList.remove('show'); }, 1500);
+        }
 
         var streamType = (this.streamQuality === 'main') ? 1 : 2;
         if (this.player) {
@@ -1052,6 +1118,20 @@ class DvrTvApp {
     handleNavigation(direction) {
         this.wakeChrome();
 
+                if (this.currentFocusZone === 'license' && this.isLicenseModalOpen) {
+            var licBtns = [
+                document.getElementById('btn-refresh-license'),
+                document.getElementById('btn-dismiss-license')
+            ].filter(function(b) { return b !== null; });
+
+            if (direction === 'left' && licBtns[0]) {
+                licBtns[0].focus();
+            } else if (direction === 'right' && licBtns[1]) {
+                licBtns[1].focus();
+            }
+            return;
+        }
+
         // 1. Modal de Configurações
         if (this.currentFocusZone === 'modal' && this.isModalOpen) {
             var len = this.modalFocusableElements.length;
@@ -1085,29 +1165,12 @@ class DvrTvApp {
             return;
         }
 
-        // 3. Em Tela Cheia
+        // 3. Em Tela Cheia (100% vídeo: setas apenas trocam de câmera)
         if (this.currentFocusZone === 'fullscreen' && this.isFullScreen) {
-            if (direction === 'right') {
+            if (direction === 'right' || direction === 'down') {
                 this.nextCamera();
-                return;
             } else if (direction === 'left' || direction === 'up') {
                 this.prevCamera();
-                return;
-            } else if (direction === 'down') {
-                // Descer da câmera foca a barra inferior translúcida
-                this.currentFocusZone = 'bottom-bar';
-                this.bottomBarFocusIndex = 0;
-                var barBtns = [
-                    document.getElementById('btn-bar-menu'),
-                    document.getElementById('btn-bar-settings'),
-                    document.getElementById('btn-bar-grid'),
-                    document.getElementById('btn-bar-quality'),
-                    document.getElementById('btn-bar-mobile'),
-                    document.getElementById('btn-bar-reconnect'),
-                    document.getElementById('btn-bar-help')
-                ].filter(function(el) { return el !== null; });
-                this.updateBottomBarFocus(barBtns, 0);
-                return;
             }
             return;
         }
