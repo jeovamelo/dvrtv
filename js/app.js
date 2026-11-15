@@ -68,6 +68,9 @@ class DvrTvApp {
     setupDOM() {
         var self = this;
         window.addEventListener('resize', function() {
+            if (self.isFullScreen) {
+                self.adjustFullScreenDimensions();
+            }
             if (self.player) self.player.resize();
         });
 
@@ -621,19 +624,62 @@ class DvrTvApp {
         }
     }
 
+    adjustFullScreenDimensions() {
+        var wrapper = document.querySelector('.fullscreen-video-wrapper');
+        var container = document.getElementById('fullscreen-player-container');
+        if (!wrapper || !container) return;
+
+        var availW = wrapper.clientWidth;
+        var availH = wrapper.clientHeight;
+        if (availW <= 0 || availH <= 0) return;
+
+        // Mantém a imagem proporcional 16:9 paisagem sem distorção e sem cobrir nada
+        var targetW = availW;
+        var targetH = Math.round(availW * 9 / 16);
+
+        if (targetH > availH) {
+            targetH = availH;
+            targetW = Math.round(availH * 16 / 9);
+        }
+
+        container.style.width = targetW + 'px';
+        container.style.height = targetH + 'px';
+
+        if (this.player && this.player.resize) {
+            this.player.resize();
+        }
+    }
+
+    updateQualityBadge() {
+        var isHd = (this.streamQuality === 1);
+        var badge = document.getElementById('fs-cam-badge');
+        var text = document.getElementById('fs-quality-text');
+        if (badge && text) {
+            badge.className = 'fs-quality-tag ' + (isHd ? 'quality-hd' : 'quality-fluido');
+            text.textContent = isHd ? 'HD' : 'Fluido';
+        }
+    }
+
     openFullScreen(channel) {
-        console.log('[App] Abrindo câmera em tela cheia:', channel.name);
+        console.log('[App] Abrindo câmera individualizada:', channel.name);
         this.isFullScreen = true;
         this.fullScreenChannel = channel;
 
         var fsView = document.getElementById('fullscreen-view');
-        if (fsView) fsView.style.display = 'block';
+        if (fsView) {
+            fsView.style.display = 'flex';
+            this.adjustFullScreenDimensions();
+        }
 
-        document.getElementById('fs-cam-title').textContent = channel.name + ' (Canal ' + channel.id + ')';
-        document.getElementById('fs-cam-badge').textContent = (this.streamQuality === 1) ? 'STREAM HD 1080P' : 'SUB-STREAM FLUIDO';
+        var titleEl = document.getElementById('fs-cam-title');
+        if (titleEl) {
+            titleEl.textContent = channel.name + ' (CH ' + channel.id + ')';
+        }
+
+        this.updateQualityBadge();
 
         this.player.play(channel.id, this.streamQuality);
-        this.showToast(channel.name + ' em Tela Cheia', 2000);
+        this.showToast(channel.name + ' (CH ' + channel.id + ')', 2000);
     }
 
     closeFullScreen() {
@@ -718,11 +764,12 @@ class DvrTvApp {
     handleYellow() {
         if (this.isModalOpen) return;
         this.streamQuality = (this.streamQuality === 1) ? 2 : 1;
-        var qualityName = (this.streamQuality === 1) ? 'Stream Principal (HD 1080P)' : 'Sub-stream (Rápido/Fluido)';
-        this.showToast('Qualidade: ' + qualityName, 2500);
+        var isHd = (this.streamQuality === 1);
+        var qualityName = isHd ? 'Stream Principal (HD)' : 'Sub-stream Fluido';
+        this.showToast('Qualidade: ' + qualityName, 2000);
 
         if (this.isFullScreen && this.fullScreenChannel) {
-            document.getElementById('fs-cam-badge').textContent = (this.streamQuality === 1) ? 'STREAM HD 1080P' : 'SUB-STREAM FLUIDO';
+            this.updateQualityBadge();
             this.player.play(this.fullScreenChannel.id, this.streamQuality);
         }
     }

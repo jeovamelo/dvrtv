@@ -36,26 +36,34 @@
         </div>
     </main>
 
-    <!-- Visualização em Tela Cheia (Player de Vídeo) -->
+    <!-- Visualização Individualizada (Player de Vídeo) -->
     <div id="fullscreen-view" class="fullscreen-view">
-        <div id="fullscreen-player-container" class="fullscreen-player-container">
-            <!-- Player AVPlay RTSP ou Fallback -->
-            <div id="player-loader" class="player-loader">
-                <div class="spinner"></div>
-                <span>Carregando transmissão ao vivo...</span>
+        <div class="fullscreen-video-wrapper">
+            <div id="fullscreen-player-container" class="fullscreen-player-container">
+                <!-- Player AVPlay RTSP ou Fallback -->
+                <div id="player-loader" class="player-loader">
+                    <div class="spinner"></div>
+                    <span>Carregando transmissão...</span>
+                </div>
             </div>
         </div>
-        <div class="fs-overlay-header">
-            <h2 id="fs-cam-title" class="fs-cam-title">Camera 01</h2>
-            <div class="fs-badges">
-                <span class="fs-live-badge">AO VIVO</span>
-                <span id="fs-cam-badge" class="fs-quality-badge">SUB-STREAM FLUIDO</span>
+
+        <!-- Barra Inferior Discreta (Abaixo da Imagem) -->
+        <div class="fullscreen-bottom-bar">
+            <div class="fs-bottom-left">
+                <div class="fs-cam-info">
+                    <h2 id="fs-cam-title" class="fs-cam-title">Camera 01 (CH 1)</h2>
+                    <div id="fs-cam-badge" class="fs-quality-tag quality-fluido">
+                        <span class="fs-quality-dot"></span>
+                        <span id="fs-quality-text">Fluido</span>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="fs-overlay-footer">
-            <span><span class="fs-hint-key">OK / VOLTAR</span> Retornar à Grade</span>
-            <span><span class="fs-hint-key">CH ▲ / ▼</span> Trocar Câmera</span>
-            <span><span class="fs-hint-key">AMARELO</span> Alternar HD / Fluido</span>
+            <div class="fs-bottom-right">
+                <span class="fs-menu-item"><span class="fs-hint-key">OK / VOLTAR</span> Grade</span>
+                <span class="fs-menu-item"><span class="fs-hint-key">CH ▲ / ▼</span> Trocar Câmera</span>
+                <span class="fs-menu-item"><span class="fs-hint-key key-yellow">AMARELO</span> Alternar Fluido / HD</span>
+            </div>
         </div>
     </div>
 
