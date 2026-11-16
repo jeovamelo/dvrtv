@@ -15,6 +15,8 @@ class TvStreamPlayer {
         this.fallbackImg = null;
         this.fallbackRequest = null;
         this.currentBlobUrl = null;
+        this.prepareTimer = null;
+        this.generation = 0;
 
         console.log('[Player] Samsung AVPlay disponível?', this.isAvPlayAvailable ? 'SIM (Aceleração por Hardware)' : 'NÃO (Modo Snapshot Autenticado)');
         this.initDOM();
@@ -49,9 +51,19 @@ class TvStreamPlayer {
      * Reprodução nativa via Samsung AVPlay (Hardware RTSP)
      */
     playAvPlay(channelId, streamType, initialSrc) {
+        const generation = this.generation;
+        let failed = false;
+        const fallback = () => {
+            if (failed || generation !== this.generation || !this.isPlaying) return;
+            failed = true;
+            clearTimeout(this.prepareTimer);
+            this.playFallback(channelId, streamType, initialSrc);
+        };
+        this.onBuffering(true);
+        this.prepareTimer = setTimeout(fallback, 8000);
         try {
             const rtspUrl = this.dvrClient.getRtspUrl(channelId, streamType);
-            console.log('[AVPlay] Abrindo stream RTSP nativo:', rtspUrl);
+            console.log('[AVPlay] Abrindo canal:', channelId, 'stream:', streamType);
 
             window.webapis.avplay.open(rtspUrl);
 
@@ -79,22 +91,24 @@ class TvStreamPlayer {
                 onerror: (err) => {
                     console.error('[AVPlay] Erro no player RTSP:', err);
                     this.onBuffering(false);
-                    this.playFallback(channelId, streamType, initialSrc);
+                    fallback();
                 }
             });
 
             window.webapis.avplay.prepareAsync(() => {
+                if (failed || generation !== this.generation || !this.isPlaying) return;
+                clearTimeout(this.prepareTimer);
                 console.log('[AVPlay] PrepareAsync pronto. Iniciando playback...');
-                window.webapis.avplay.play();
+                try { window.webapis.avplay.play(); } catch (err) { fallback(); return; }
                 this.onBuffering(false);
             }, (prepareErr) => {
                 console.warn('[AVPlay] Falha no prepareAsync RTSP:', prepareErr);
-                this.playFallback(channelId, streamType, initialSrc);
+                fallback();
             });
 
         } catch (e) {
             console.error('[AVPlay] Exceção ao iniciar AVPlay:', e);
-            this.playFallback(channelId, streamType, initialSrc);
+            fallback();
         }
     }
 
@@ -103,6 +117,8 @@ class TvStreamPlayer {
      * Envia o SessionTag nos cabeçalhos HTTP para evitar o erro 401 Unauthorized na TV.
      */
     async playFallback(channelId, streamType, initialSrc) {
+        const generation = this.generation;
+        clearTimeout(this.prepareTimer);
         console.log('[Player] Fallback de snapshot com autenticação ativa');
         if (this.isAvPlayAvailable) {
             try {
@@ -115,6 +131,7 @@ class TvStreamPlayer {
         }
 
         this.fallbackImg.style.display = 'block';
+        this.onBuffering(!initialSrc);
         if (initialSrc) {
             this.fallbackImg.src = initialSrc;
         }
@@ -123,12 +140,13 @@ class TvStreamPlayer {
         var self = this;
 
         var updateFrame = async () => {
-            if (!self.isPlaying || self.currentChannelId !== channelId || isFetching) return;
+            if (!self.isPlaying || generation !== self.generation || self.currentChannelId !== channelId || isFetching) return;
             isFetching = true;
 
             try {
                 var blobUrl = await self.dvrClient.fetchSnapshotBlob(channelId, streamType);
-                if (self.isPlaying && self.currentChannelId === channelId) {
+                if (self.isPlaying && generation === self.generation && self.currentChannelId === channelId) {
+                    self.onBuffering(false);
                     var oldBlob = self.currentBlobUrl;
                     self.currentBlobUrl = blobUrl;
                     self.fallbackImg.src = blobUrl;
@@ -141,6 +159,15 @@ class TvStreamPlayer {
                     try { URL.revokeObjectURL(blobUrl); } catch(e) {}
                 }
             } catch (err) {
+                console.warn('[Player] Falha no snapshot CH ' + channelId + ':', err.message);
+                if (generation !== self.generation) return;
+                self.onBuffering(false);
+                var loader = document.getElementById('player-loader');
+                if (loader) {
+                    var label = loader.querySelector('span');
+                    if (label) label.textContent = 'Falha ao carregar câmera: ' + err.message + '. Tentando novamente…';
+                    loader.style.display = 'flex';
+                }
                 if (window.location && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
                     self.fallbackImg.src = self.dvrClient.getSnapshotUrl(channelId, streamType);
                 }
@@ -148,7 +175,7 @@ class TvStreamPlayer {
                 isFetching = false;
             }
 
-            if (self.isPlaying && self.currentChannelId === channelId) {
+            if (self.isPlaying && generation === self.generation && self.currentChannelId === channelId) {
                 self.fallbackTimer = setTimeout(updateFrame, 400);
             }
         };
@@ -160,6 +187,8 @@ class TvStreamPlayer {
      * Interrompe a reprodução atual
      */
     stop() {
+        this.generation++;
+        clearTimeout(this.prepareTimer);
         this.isPlaying = false;
         if (this.fallbackTimer) {
             clearTimeout(this.fallbackTimer);

@@ -1413,6 +1413,17 @@ class DvrTvApp {
        ========================================================================== */
     openFullScreen(channel) {
         if (!channel) return;
+        // init() pode retornar antecipadamente durante o onboarding.
+        if (!this.player) {
+            var playerContainer = document.getElementById('fullscreen-player-container');
+            if (window.TvStreamPlayer && playerContainer) {
+                this.player = new window.TvStreamPlayer(playerContainer, this.dvr);
+            }
+        }
+        if (!this.player) {
+            this.showToast('Não foi possível inicializar o player da câmera.', 5000);
+            return;
+        }
         this.isFullScreen = true;
         this.fullScreenChannel = channel;
         this.currentFocusZone = 'fullscreen';
@@ -1469,8 +1480,11 @@ class DvrTvApp {
     fitFullscreenPlayer() {
         var container = document.getElementById('fullscreen-player-container');
         if (!container) return;
-        container.style.setProperty('width', '100vw', 'important');
-        container.style.setProperty('height', '100vh', 'important');
+        var width = window.innerWidth || 1920;
+        var height = window.innerHeight || 1080;
+        var frameWidth = Math.floor(Math.min(width * 0.90, height * 0.84 * 16 / 9));
+        container.style.setProperty('width', frameWidth + 'px', 'important');
+        container.style.setProperty('height', (frameWidth * 9 / 16) + 'px', 'important');
         if (this.player && this.player.resize) {
             this.player.resize();
         }
