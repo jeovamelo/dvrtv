@@ -4,6 +4,8 @@ WORKDIR /app
 
 COPY server.js ./
 COPY index.html ./
+COPY landing.html ./
+COPY dvrtv.wgt ./
 COPY icon.png ./
 COPY manifest.json ./
 COPY config.xml ./

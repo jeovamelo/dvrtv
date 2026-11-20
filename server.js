@@ -644,6 +644,42 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    // 9.1 Rotas da Landing Page e Política de Privacidade (dvr.ilocseguro.com)
+    const hostHeader = (req.headers.host || '').toLowerCase();
+    const isDomainIloc = hostHeader.includes('ilocseguro.com');
+    const isLandingRoute = pathname === '/landing' || pathname === '/sobre' || pathname === '/privacidade' || (pathname === '/' && isDomainIloc);
+
+    if (isLandingRoute) {
+        const landingHtmlPath = path.join(__dirname, 'landing.html');
+        fs.readFile(landingHtmlPath, (err, content) => {
+            if (err) {
+                fs.readFile(path.join(__dirname, 'index.html'), (e, c) => {
+                    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+                    res.end(c);
+                });
+            } else {
+                res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache, no-store, must-revalidate' });
+                res.end(content);
+            }
+        });
+        return;
+    }
+
+    // 9.2 Rota /tv ou /app para o emulador/aplicação web da TV
+    if (pathname === '/tv' || pathname === '/tv/' || pathname === '/app' || pathname === '/app/') {
+        const tvHtmlPath = path.join(__dirname, 'index.html');
+        fs.readFile(tvHtmlPath, (err, content) => {
+            if (err) {
+                res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+                res.end('Painel TV não encontrado.');
+            } else {
+                res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache, no-store, must-revalidate' });
+                res.end(content);
+            }
+        });
+        return;
+    }
+
     // 10. Servir arquivos estáticos locais (App da TV, css, js, mobile assets)
     let cleanUrl = pathname;
     let filePath = path.join(__dirname, cleanUrl === '/' ? 'index.html' : cleanUrl);
@@ -659,7 +695,8 @@ const server = http.createServer((req, res) => {
         '.jpeg': 'image/jpeg',
         '.svg': 'image/svg+xml',
         '.xml': 'text/xml',
-        '.ico': 'image/x-icon'
+        '.ico': 'image/x-icon',
+        '.wgt': 'application/x-tizen-widget'
     };
 
     const contentType = mimeTypes[extname] || 'application/octet-stream';

@@ -1,0 +1,1025 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DVR TV - Monitoramento CFTV para Samsung Smart TV | iLoc Seguro</title>
+    <meta name="description" content="Aplicativo profissional de monitoramento CFTV para Samsung Smart TV (Tizen). Visualize até 36 câmeras em tempo real com aceleração por hardware AVPlay, proporção 16:9 e controle pelo celular.">
+    <meta name="keywords" content="dvr, cameras, cftv, seguranca, monitoramento, samsung tv, tizen, hikvision, hilook, iloc seguro">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #070a11;
+            --bg-card: #0d1524;
+            --bg-card-hover: #131f36;
+            --primary-cyan: #00f0ff;
+            --primary-blue: #1877f2;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #1e293b;
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* NAVBAR */
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(7, 10, 17, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+        }
+        .nav-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-light);
+        }
+        .nav-logo-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #00f0ff 0%, #1877f2 100%);
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 0 16px rgba(0, 240, 255, 0.35);
+        }
+        .brand-title {
+            font-size: 19px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(90deg, #ffffff 40%, var(--primary-cyan) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .brand-badge {
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--primary-cyan);
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 12px;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            list-style: none;
+        }
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+        .nav-links a:hover { color: var(--primary-cyan); }
+        .nav-actions { display: flex; align-items: center; gap: 10px; }
+
+        .btn-nav {
+            padding: 7px 14px;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .btn-nav-outline {
+            background: rgba(0, 240, 255, 0.05);
+            color: var(--primary-cyan);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+        }
+        .btn-nav-outline:hover {
+            background: rgba(0, 240, 255, 0.15);
+            border-color: var(--primary-cyan);
+        }
+        .btn-nav-primary {
+            background: linear-gradient(135deg, #00f0ff 0%, #1877f2 100%);
+            color: #06090e;
+            font-weight: 700;
+        }
+        .btn-nav-primary:hover {
+            box-shadow: 0 0 16px rgba(0, 240, 255, 0.45);
+        }
+
+        /* HERO */
+        .hero-section {
+            padding: 75px 0 50px;
+            position: relative;
+            text-align: center;
+        }
+        .hero-badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            border-radius: 50px;
+            padding: 6px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary-cyan);
+            margin-bottom: 22px;
+        }
+        .hero-title {
+            font-size: 48px;
+            font-weight: 900;
+            line-height: 1.15;
+            letter-spacing: -1.5px;
+            max-width: 900px;
+            margin: 0 auto 20px;
+        }
+        .hero-title span {
+            background: linear-gradient(135deg, #00f0ff 0%, #38bdf8 50%, #818cf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero-subtitle {
+            font-size: 17px;
+            color: var(--text-muted);
+            max-width: 760px;
+            margin: 0 auto 34px;
+        }
+        .hero-cta-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-bottom: 45px;
+        }
+        .btn-cta {
+            padding: 11px 22px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-cta-cyan {
+            background: linear-gradient(135deg, #00f0ff 0%, #1877f2 100%);
+            color: #06090e;
+            box-shadow: 0 4px 20px rgba(0, 240, 255, 0.35);
+        }
+        .btn-cta-cyan:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 26px rgba(0, 240, 255, 0.5);
+        }
+        .btn-cta-dark {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-light);
+            border: 1px solid var(--border-color);
+        }
+        .btn-cta-dark:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--text-muted);
+            transform: translateY(-2px);
+        }
+
+        /* TV MOCKUP */
+        .tv-mockup-wrapper {
+            max-width: 940px;
+            margin: 0 auto;
+        }
+        .tv-frame {
+            background: #141b27;
+            border-radius: 14px;
+            padding: 12px;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 35px rgba(0, 240, 255, 0.12);
+            border: 2px solid #2d3748;
+        }
+        .tv-screen {
+            background: #06090e;
+            border-radius: 7px;
+            aspect-ratio: 16 / 9;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #1a2233;
+        }
+        .mock-tv-header {
+            height: 36px;
+            background: rgba(13, 21, 36, 0.95);
+            border-bottom: 1.5px solid #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 14px;
+            font-size: 11px;
+            font-family: var(--font-mono);
+        }
+        .mock-tv-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 6px var(--accent-green);
+            display: inline-block;
+        }
+        .mock-camera-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 4px;
+            padding: 5px;
+            background: #050811;
+        }
+        .mock-cam-card {
+            background: #0c1322;
+            border: 1px solid #1b263b;
+            border-radius: 3px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .mock-cam-card.focused {
+            border: 2px solid var(--primary-cyan);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+        }
+        .mock-cam-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0.35;
+            background: linear-gradient(135deg, #131d31 0%, #080c16 100%);
+        }
+        .mock-cam-info-top {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            font-size: 7.5px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            background: rgba(0, 0, 0, 0.75);
+            padding: 1px 4px;
+            border-radius: 2px;
+            color: #ffffff;
+            z-index: 2;
+        }
+        .mock-cam-status {
+            position: absolute;
+            bottom: 3px;
+            right: 3px;
+            font-size: 7px;
+            font-weight: 800;
+            font-family: var(--font-mono);
+            color: var(--accent-green);
+            background: rgba(16, 185, 129, 0.2);
+            padding: 1px 3px;
+            border-radius: 2px;
+            z-index: 2;
+        }
+        .mock-tv-footer {
+            height: 28px;
+            background: #090e19;
+            border-top: 1px solid #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            font-size: 10px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+        .mock-pill {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+        .tv-stand {
+            width: 180px;
+            height: 14px;
+            background: #1f293d;
+            margin: 0 auto;
+            border-radius: 0 0 8px 8px;
+        }
+
+        /* STATS STRIP */
+        .stats-strip {
+            padding: 38px 0;
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(13, 21, 36, 0.4);
+            margin: 55px 0 30px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            text-align: center;
+        }
+        .stat-card { padding: 8px; }
+        .stat-value {
+            font-size: 38px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #ffffff 0%, var(--primary-cyan) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 4px;
+        }
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* SECTIONS */
+        .section { padding: 70px 0; }
+        .section-header {
+            text-align: center;
+            max-width: 760px;
+            margin: 0 auto 50px;
+        }
+        .section-tag {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--primary-cyan);
+            margin-bottom: 12px;
+            display: inline-block;
+        }
+        .section-title {
+            font-size: 34px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 16px;
+        }
+        .section-desc {
+            font-size: 16px;
+            color: var(--text-muted);
+        }
+
+        /* FEATURES GRID */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 30px 24px;
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(0, 240, 255, 0.4);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 240, 255, 0.1);
+            background: var(--bg-card-hover);
+        }
+        .feature-icon-box {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: var(--primary-cyan);
+        }
+        .feature-card h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-light);
+        }
+        .feature-card p {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* STEPS SECTION */
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+        .step-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 28px 22px;
+        }
+        .step-num {
+            font-family: var(--font-mono);
+            font-size: 32px;
+            font-weight: 900;
+            color: rgba(0, 240, 255, 0.25);
+            margin-bottom: 12px;
+        }
+        .step-card h3 {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .step-card p {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* COMPATIBILITY TABLE */
+        .compat-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            overflow: hidden;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .compat-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 14px;
+        }
+        .compat-table th {
+            background: rgba(255, 255, 255, 0.04);
+            padding: 16px 20px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-light);
+        }
+        .compat-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+        }
+        .compat-table tr:last-child td { border-bottom: none; }
+        .badge-compat {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+        }
+        .badge-tizen {
+            background: rgba(24, 119, 242, 0.15);
+            color: #38bdf8;
+            border: 1px solid rgba(24, 119, 242, 0.3);
+        }
+        .badge-verified {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        /* PRIVACY POLICY */
+        .privacy-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 960px;
+            margin: 0 auto;
+        }
+        .privacy-box h2 { font-size: 26px; font-weight: 800; margin-bottom: 12px; }
+        .privacy-updated { font-size: 12px; color: var(--text-muted); margin-bottom: 24px; font-family: var(--font-mono); }
+        .privacy-highlight {
+            background: rgba(16, 185, 129, 0.08);
+            border-left: 4px solid var(--accent-green);
+            padding: 14px 18px;
+            border-radius: 0 8px 8px 0;
+            margin: 18px 0;
+            font-size: 14px;
+            color: #d1fae5;
+        }
+        .privacy-item { margin-bottom: 24px; }
+        .privacy-item h3 { font-size: 17px; font-weight: 700; color: var(--primary-cyan); margin-bottom: 10px; }
+        .privacy-item p { font-size: 14px; color: var(--text-muted); line-height: 1.7; margin-bottom: 10px; }
+        .privacy-item ul { padding-left: 20px; color: var(--text-muted); font-size: 14px; line-height: 1.7; }
+
+        /* FOOTER */
+        .footer {
+            background: #04060a;
+            border-top: 1px solid var(--border-color);
+            padding: 60px 0 30px;
+            margin-top: 60px;
+        }
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1.5fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        .footer-brand h4 { font-size: 18px; font-weight: 800; margin-bottom: 12px; }
+        .footer-brand p { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px; }
+        .footer-col h5 { font-size: 14px; font-weight: 700; margin-bottom: 16px; text-transform: uppercase; }
+        .footer-col ul { list-style: none; }
+        .footer-col ul li { margin-bottom: 10px; }
+        .footer-col ul a { color: var(--text-muted); text-decoration: none; font-size: 13px; }
+        .footer-col ul a:hover { color: var(--primary-cyan); }
+        .footer-bottom {
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* MEDIA QUERIES */
+        @media (max-width: 992px) {
+            .features-grid { grid-template-columns: repeat(2, 1fr); }
+            .steps-grid { grid-template-columns: repeat(2, 1fr); }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .footer-grid { grid-template-columns: 1fr 1fr; }
+            .hero-title { font-size: 38px; }
+        }
+        @media (max-width: 640px) {
+            .features-grid { grid-template-columns: 1fr; }
+            .steps-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .footer-grid { grid-template-columns: 1fr; }
+            .nav-links { display: none; }
+            .hero-title { font-size: 28px; }
+            .hero-subtitle { font-size: 15px; }
+            .privacy-box { padding: 22px 16px; }
+            .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR -->
+    <header class="navbar">
+        <div class="container nav-wrap">
+            <a href="#" class="nav-brand">
+                <span style="font-size: 24px;">📹</span>
+                <span class="brand-title">DVR TV</span>
+                <span class="brand-badge">Samsung Tizen</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#recursos">Recursos</a></li>
+                <li><a href="#como-funciona">Como Funciona</a></li>
+                <li><a href="#compatibilidade">Compatibilidade</a></li>
+                <li><a href="#privacidade">Privacidade</a></li>
+            </ul>
+            <div class="nav-actions">
+                <a href="/mobile" class="btn-nav btn-nav-outline">📱 Celular</a>
+                <a href="/tv" class="btn-nav btn-nav-primary">📺 Painel TV</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="hero-badge-pill">
+                <span>🛡️</span> Aplicativo Oficial Samsung Apps TV &bull; Tizen 5.0+
+            </div>
+            <h1 class="hero-title">
+                Suas câmeras de segurança na tela da sua <span>Smart TV Samsung</span>
+            </h1>
+            <p class="hero-subtitle">
+                Monitore até 36 câmeras CFTV em tempo real com aceleração de hardware nativa Tizen AVPlay, proporção 16:9 perfeita, latência ultrabaixa e controle total pelo celular ou controle remoto.
+            </p>
+            <div class="hero-cta-group">
+                <a href="/mobile" class="btn-cta btn-cta-cyan">📱 Abrir Controle no Celular</a>
+                <a href="/tv" class="btn-cta btn-cta-dark">📺 Acessar Emulador da TV</a>
+                <a href="/dvrtv.wgt" download class="btn-cta btn-cta-dark">📥 Baixar Pacote (.wgt)</a>
+            </div>
+
+            <!-- TV MOCKUP -->
+            <div class="tv-mockup-wrapper">
+                <div class="tv-frame">
+                    <div class="tv-screen">
+                        <div class="mock-tv-header">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span class="mock-tv-dot"></span>
+                                <strong style="color:#fff;">DVR TV &bull; 16 CÂMERAS CONECTADAS</strong>
+                            </div>
+                            <div style="display:flex; gap:16px; color:#94a3b8; font-size:10px;">
+                                <span>RTSP H.264/H.265</span>
+                                <span>REDE LOCAL: 192.168.100.2</span>
+                                <span id="mock-clock">13:30:00</span>
+                            </div>
+                        </div>
+
+                        <div class="mock-camera-grid">
+                            <div class="mock-cam-card focused">
+                                <div class="mock-cam-bg"></div>
+                                <span class="mock-cam-info-top">CAM 01 - PORTARIA SOCIAL</span>
+                                <span class="mock-cam-status">AO VIVO &bull; HD</span>
+                            </div>
+                            <div class="mock-cam-card">
+                                <div class="mock-cam-bg"></div>
+                                <span class="mock-cam-info-top">CAM 02 - ENTRADA GARAGEM</span>
+                                <span class="mock-cam-status">AO VIVO</span>
+                            </div>
+                            <div class="mock-cam-card">
+                                <div class="mock-cam-bg"></div>
+                                <span class="mock-cam-info-top">CAM 03 - CORREDOR PRINCIPAL</span>
+                                <span class="mock-cam-status">AO VIVO</span>
+                            </div>
+                            <div class="mock-cam-card">
+                                <div class="mock-cam-bg"></div>
+                                <span class="mock-cam-info-top">CAM 04 - HALL ELEVADORES</span>
+                                <span class="mock-cam-status">AO VIVO</span>
+                            </div>
+                            <div class="mock-cam-card">
+                                <div class="mock-cam-bg"></div>
+                                <span class="mock-cam-info-top">CAM 05 - ESTACIONAMENTO G1</span>
+                                <span class="mock-cam-status">AO VIVO</span>
+                            </div>
+                            <div class="mock-cam-card">
+                                <div class="mock-cam-bg"></div>
+                                <span class="mock-cam-info-top">CAM 06 - ESTACIONAMENTO G2</span>
+                                <span class="mock-cam-status">AO VIVO</span>
+                            </div>
+                            <div class="mock-cam-card">
+                                <div class="mock-cam-bg"></div>
+                                <span class="mock-cam-info-top">CAM 07 - RECEPÇÃO</span>
+                                <span class="mock-cam-status">AO VIVO</span>
+                            </div>
+                            <div class="mock-cam-card">
+                                <div class="mock-cam-bg"></div>
+                                <span class="mock-cam-info-top">CAM 08 - ACADEMIA</span>
+                                <span class="mock-cam-status">AO VIVO</span>
+                            </div>
+                            <div class="mock-cam-card">
+                                <div class="mock-cam-bg"></div>
+                                <span class="mock-cam-info-top">CAM 09 - ÁREA EXTERNA</span>
+                                <span class="mock-cam-status">AO VIVO</span>
+                            </div>
+                            <div class="mock-cam-card">
+                                <div class="mock-cam-bg"></div>
+                                <span class="mock-cam-info-top">CAM 10 - PISCINA</span>
+                                <span class="mock-cam-status">AO VIVO</span>
+                            </div>
+                            <div class="mock-cam-card">
+                                <div class="mock-cam-bg"></div>
+                                <span class="mock-cam-info-top">CAM 11 - SALÃO DE FESTAS</span>
+                                <span class="mock-cam-status">AO VIVO</span>
+                            </div>
+                            <div class="mock-cam-card">
+                                <div class="mock-cam-bg"></div>
+                                <span class="mock-cam-info-top">CAM 12 - QUADRA POLIESPORTIVA</span>
+                                <span class="mock-cam-status">AO VIVO</span>
+                            </div>
+                            <div class="mock-cam-card">
+                                <div class="mock-cam-bg"></div>
+                                <span class="mock-cam-info-top">CAM 13 - GUARITA</span>
+                                <span class="mock-cam-status">AO VIVO</span>
+                            </div>
+                            <div class="mock-cam-card">
+                                <div class="mock-cam-bg"></div>
+                                <span class="mock-cam-info-top">CAM 14 - DEPÓSITO</span>
+                                <span class="mock-cam-status">AO VIVO</span>
+                            </div>
+                            <div class="mock-cam-card">
+                                <div class="mock-cam-bg"></div>
+                                <span class="mock-cam-info-top">CAM 15 - PERÍMETRO NORTE</span>
+                                <span class="mock-cam-status">AO VIVO</span>
+                            </div>
+                            <div class="mock-cam-card">
+                                <div class="mock-cam-bg"></div>
+                                <span class="mock-cam-info-top">CAM 16 - PERÍMETRO SUL</span>
+                                <span class="mock-cam-status">AO VIVO</span>
+                            </div>
+                        </div>
+
+                        <div class="mock-tv-footer">
+                            <span><span class="mock-pill" style="background:#ef4444;"></span>Vermelho: Reconectar</span>
+                            <span><span class="mock-pill" style="background:#10b981;"></span>Verde: Alternar Grade</span>
+                            <span><span class="mock-pill" style="background:#f59e0b;"></span>Amarelo: Qualidade</span>
+                            <span><span class="mock-pill" style="background:#3b82f6;"></span>Azul: Configurações</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="tv-stand"></div>
+            </div>
+        </div>
+    </section>
+    <!-- STATS STRIP -->
+    <div class="stats-strip">
+        <div class="container stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">1 a 36</div>
+                <div class="stat-label">Câmeras Simultâneas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">16:9</div>
+                <div class="stat-label">Proporção Perfeita</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">&lt;200ms</div>
+                <div class="stat-label">Latência Ultrabaixa</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">100%</div>
+                <div class="stat-label">Local &amp; Zero Nuvem</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FEATURES SECTION -->
+    <section class="section" id="recursos">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Recursos Avançados</span>
+                <h2 class="section-title">Engenharia sob medida para Smart TVs Samsung</h2>
+                <p class="section-desc">O DVR TV aproveita a aceleração gráfica e decodificação por hardware nativa do Tizen OS para garantir operação contínua e sem sobrecarga.</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon-box">🚀</div>
+                    <h3>Aceleração Tizen AVPlay</h3>
+                    <p>Decodificação direta pelo hardware dos processadores Samsung Crystal UHD e QLED. Sem aquecimento, sem perda de frames e com estabilidade 24 horas por dia.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-box">📐</div>
+                    <h3>Grade Inteligente 16:9</h3>
+                    <p>Ajuste automático em 1, 4, 9, 16, 25 e 36 câmeras mantendo a proporção correta, sem cortar o campo de visão e sem esticar a imagem.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-box">📱</div>
+                    <h3>Controle pelo Celular</h3>
+                    <p>Aponte a câmera para o QR Code na TV para abrir o `/mobile`. Alterne canais, navegue na grade e configure o IP do gravador sem usar o teclado da TV.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-box">🎮</div>
+                    <h3>Controle Remoto Otimizado</h3>
+                    <p>Navegação intuitiva pelas setas direcionais, tecla OK para zoom em tela cheia, troca rápida de canal (CH +/- e teclado numérico) e atalhos coloridos.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-box">🔒</div>
+                    <h3>Privacidade Zero Nuvem</h3>
+                    <p>Todas as transmissões de vídeo e credenciais trafegam estritamente na rede local (LAN). Nenhuma imagem é enviada para a Internet ou armazenada em servidores externos.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-box">🔄</div>
+                    <h3>Reconexão Automática</h3>
+                    <p>Detecção inteligente de oscilações na rede ou reinicialização do DVR. O aplicativo reconecta os streams automaticamente em segundo plano de forma transparente.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="section" id="como-funciona" style="background: rgba(13, 21, 36, 0.3);">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Passo a Passo</span>
+                <h2 class="section-title">Como começar a monitorar em 4 minutos</h2>
+                <p class="section-desc">Sem necessidade de computador ligado ou cabos extras. Basta sua TV Samsung e seu DVR na mesma rede.</p>
+            </div>
+
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-num">01</div>
+                    <h3>Instale na Smart TV</h3>
+                    <p>Instale o aplicativo DVR TV pela Samsung Apps TV ou transfira o pacote <code>dvrtv.wgt</code> no modo desenvolvedor.</p>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">02</div>
+                    <h3>Conecte pelo Celular</h3>
+                    <p>Pressione o botão Azul no controle ou acesse a rota <code>/mobile</code> pelo smartphone para iniciar o pareamento local.</p>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">03</div>
+                    <h3>Configure seu DVR</h3>
+                    <p>Digite o IP local do DVR (ex: <code>192.168.100.2</code>), usuário e senha. O sistema valida os canais automaticamente via ISAPI / RTSP.</p>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-num">04</div>
+                    <h3>Monitore em Tempo Real</h3>
+                    <p>Pronto! Suas câmeras começam a transmitir em tempo real com excelente nitidez e troca rápida de canais.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- COMPATIBILITY -->
+    <section class="section" id="compatibilidade">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Compatibilidade</span>
+                <h2 class="section-title">Compatível com os principais padrões do mercado</h2>
+                <p class="section-desc">Projetado para máxima interoperabilidade com as TVs Samsung e os maiores fabricantes de CFTV do mundo.</p>
+            </div>
+
+            <div class="compat-box">
+                <table class="compat-table">
+                    <thead>
+                        <tr>
+                            <th>Categoria</th>
+                            <th>Compatibilidade</th>
+                            <th>Status de Homologação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Smart TVs Samsung</strong></td>
+                            <td>Tizen 5.0, 5.5, 6.0, 6.5, 7.0, 8.0, 9.0 (Modelos 2019 a 2026)</td>
+                            <td><span class="badge-compat badge-verified">&check; Homologado</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Gravadores de CFTV</strong></td>
+                            <td>Hikvision, Hilook, Intelbras, Dahua, Uniview, Giga e compatíveis</td>
+                            <td><span class="badge-compat badge-verified">&check; Homologado</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Protocolos de Vídeo</strong></td>
+                            <td>RTSP nativo, ISAPI Hikvision/Hilook, H.264 e H.265 / HEVC</td>
+                            <td><span class="badge-compat badge-tizen">Nativo Tizen AVPlay</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Resoluções de Tela</strong></td>
+                            <td>Full HD (1080p), 4K UHD (2160p) e 8K em proporção nativa 16:9</td>
+                            <td><span class="badge-compat badge-verified">&check; Total</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Ambiente de Rede</strong></td>
+                            <td>Rede Local cabeada (Ethernet Gigabit/100M) ou Wi-Fi 2.4GHz / 5GHz</td>
+                            <td><span class="badge-compat badge-verified">&check; Recomendado LAN</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+    <!-- PRIVACY POLICY (LGPD & SAMSUNG SELLER OFFICE) -->
+    <section class="section" id="privacidade">
+        <div class="container">
+            <div class="privacy-box">
+                <h2>Política de Privacidade e Proteção de Dados</h2>
+                <div class="privacy-updated">Última atualização: 20 de Novembro de 2026 &bull; Em conformidade com a LGPD (Lei nº 13.709/2018) e Samsung Apps TV Seller Office</div>
+
+                <div class="privacy-highlight">
+                    <strong>Resumo de Privacidade:</strong> O DVR TV foi desenvolvido sob o princípio de <em>Privacy by Design</em>. Não coletamos, não vendemos, não armazenamos em servidores remotos e não monitoramos suas imagens ou dados de câmeras. Todo o tráfego ocorre estritamente dentro da sua rede local (LAN).
+                </div>
+
+                <div class="privacy-item">
+                    <h3>1. Quem Somos e Contato do Encarregado (DPO)</h3>
+                    <p>O aplicativo <strong>DVR TV</strong> é desenvolvido e mantido por <strong>iLoc Seguro Sistemas de Rastreamento e Segurança</strong>. Para qualquer dúvida ou esclarecimento sobre o tratamento de dados, o usuário pode contatar nosso Encarregado de Proteção de Dados (DPO) pelo e-mail <strong>privacidade@ilocseguro.com</strong> ou <strong>contato@ilocseguro.com</strong>.</p>
+                </div>
+
+                <div class="privacy-item">
+                    <h3>2. Coleta e Tratamento de Dados Pessoais</h3>
+                    <p>O DVR TV funciona de forma 100% autônoma e descentralizada:</p>
+                    <ul>
+                        <li><strong>Credenciais de Acesso ao DVR:</strong> O endereço IP local do gravador, a porta, o nome de usuário e a senha são armazenados exclusivamente no armazenamento local da Smart TV (armazenamento <em>localStorage</em> do Tizen).</li>
+                        <li><strong>Fluxos de Vídeo (Streams):</strong> As transmissões ao vivo de áudio e vídeo de cada canal de câmera transitam diretamente entre o gravador (DVR/NVR) e o player de vídeo nativo da TV (AVPlay) através da rede local privada do usuário. Nenhuma gravação de vídeo ou captura de imagem é transmitida para a Internet.</li>
+                        <li><strong>Nenhum Dado Biométrico ou Pessoal:</strong> O aplicativo não realiza reconhecimento facial, não processa áudio para inteligência externa e não coleta identificadores pessoais de terceiros.</li>
+                    </ul>
+                </div>
+
+                <div class="privacy-item">
+                    <h3>3. Comunicação de Rede e Protocolos Utilizados</h3>
+                    <p>Para o funcionamento das funcionalidades de monitoramento, o aplicativo realiza comunicações utilizando:</p>
+                    <ul>
+                        <li><strong>ISAPI (HTTP/HTTPS):</strong> Comunicação local para descoberta de canais e nomes de câmeras configuradas no DVR.</li>
+                        <li><strong>RTSP (Real Time Streaming Protocol):</strong> Protocolo padrão de transmissão contínua de vídeo em alta definição com decodificação por hardware nativo da Smart TV.</li>
+                        <li><strong>WebSocket / HTTP Local:</strong> Comunicação restrita entre o smartphone e a TV na mesma rede para o recurso de controle remoto virtual (<code>/mobile</code>).</li>
+                    </ul>
+                </div>
+
+                <div class="privacy-item">
+                    <h3>4. Direitos do Titular de Dados (Art. 18 da LGPD)</h3>
+                    <p>Em conformidade com a Lei Geral de Proteção de Dados Pessoais (LGPD), o usuário possui total controle sobre todas as informações cadastradas no aplicativo. A qualquer momento, o usuário pode:</p>
+                    <ul>
+                        <li>Visualizar e alterar os dados de conexão e IP nas configurações do app;</li>
+                        <li>Excluir definitivamente todas as credenciais e configurações salvas na TV utilizando o botão de redefinição no menu ou limpando os dados nas configurações da Smart TV Samsung;</li>
+                        <li>Interromper qualquer transmissão desinstalando o aplicativo ou desligando a TV.</li>
+                    </ul>
+                </div>
+
+                <div class="privacy-item">
+                    <h3>5. Segurança da Informação</h3>
+                    <p>Adotamos medidas técnicas para garantir que o aplicativo funcione sem portas externas expostas e sem comunicação com servidores de terceiros não autorizados. Recomendamos que o usuário mantenha sua rede Wi-Fi e cabeada protegida com senhas fortes e configurações de firewall adequadas em seu roteador.</p>
+                </div>
+
+                <div class="privacy-item">
+                    <h3>6. Alterações nesta Política de Privacidade</h3>
+                    <p>Quaisquer atualizações nesta Política de Privacidade serão publicadas nesta página oficial em <strong>https://www.dvr.ilocseguro.com/</strong>. Recomendamos a consulta periódica deste documento.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <h4>DVR TV &bull; iLoc Seguro</h4>
+                    <p>Solução corporativa e residencial para monitoramento de câmeras CFTV em Smart TVs Samsung Tizen. Estabilidade, nitidez e controle moderno na ponta dos seus dedos.</p>
+                    <p style="font-size: 12px; color: var(--text-muted);">
+                        Desenvolvido por iLoc Seguro Sistemas<br>
+                        Site: <a href="https://www.ilocseguro.com" target="_blank" style="color: var(--primary-cyan); text-decoration: none;">www.ilocseguro.com</a>
+                    </p>
+                </div>
+
+                <div class="footer-col">
+                    <h5>Acesso Rápido</h5>
+                    <ul>
+                        <li><a href="#recursos">Recursos</a></li>
+                        <li><a href="#como-funciona">Como Funciona</a></li>
+                        <li><a href="#compatibilidade">Compatibilidade</a></li>
+                        <li><a href="#privacidade">Política de Privacidade</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h5>Aplicações</h5>
+                    <ul>
+                        <li><a href="/tv">📺 Painel TV / Emulador</a></li>
+                        <li><a href="/mobile">📱 Controle pelo Celular</a></li>
+                        <li><a href="/dvrtv.wgt" download>📥 Baixar Pacote Tizen (.wgt)</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h5>Suporte &amp; Contato</h5>
+                    <ul>
+                        <li><a href="mailto:contato@ilocseguro.com">contato@ilocseguro.com</a></li>
+                        <li><a href="mailto:privacidade@ilocseguro.com">privacidade@ilocseguro.com</a></li>
+                        <li><a href="https://www.ilocseguro.com" target="_blank">www.ilocseguro.com</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <div>&copy; 2026 iLoc Seguro Sistemas. Todos os direitos reservados. Samsung e Tizen são marcas registradas da Samsung Electronics Co., Ltd.</div>
+                <div>Versão 2.1.0 &bull; Samsung Apps TV Certified</div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function updateClock() {
+            var el = document.getElementById('mock-clock');
+            if (el) {
+                var now = new Date();
+                el.textContent = now.toLocaleTimeString('pt-BR');
+            }
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
+</html>
